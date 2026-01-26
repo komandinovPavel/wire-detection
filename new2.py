@@ -82,7 +82,44 @@ def measure_wire_diameter(binary_img, pixels_per_mm, visualize=True):
     return diameter_mm, diameter_px
 
 # Детекция дефектов
-def detect_defects(binary_img, pixels_per_mm):
+# def detect_defects(binary_img, pixels_per_mm):
+#     # Для дефектов: инвертируем бинарное
+#     inv = cv2.bitwise_not(binary_img)
+#     contours, _ = cv2.findContours(binary_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+#     wire_contour = max(contours, key=cv2.contourArea)
+#     mask_wire = np.zeros_like(binary_img)
+#     cv2.drawContours(mask_wire, [wire_contour], -1, 255, -1)
+
+#     defects_mask = cv2.bitwise_and(inv, inv, mask=mask_wire)
+#     defect_contours, _ = cv2.findContours(defects_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+#     vis = cv2.cvtColor(binary_img, cv2.COLOR_GRAY2BGR)
+#     measurements = []
+#     for i, cnt in enumerate(defect_contours):
+#         area_px = cv2.contourArea(cnt)
+#         if area_px < 5: continue
+#         x, y, w, h = cv2.boundingRect(cnt)
+#         cv2.rectangle(vis, (x,y), (x+w,y+h), (0,255,0), 1)
+#         cv2.putText(vis, f"D{i+1}", (x, y-5), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,0), 1)
+#         measurements.append({
+#             "id": i+1,
+#             "area_mm2": area_px / (pixels_per_mm**2),
+#             "width_mm": w / pixels_per_mm,
+#             "height_mm": h / pixels_per_mm
+#         })
+
+#     return vis, measurements
+
+def detect_defects(binary_img, original_img, pixels_per_mm, alpha=0.4):
+    """
+    Находит дефекты и подсвечивает их полупрозрачным красным на исходном изображении
+    
+    Args:
+        binary_img: бинарное изображение для поиска дефектов
+        original_img: исходное цветное изображение
+        pixels_per_mm: калибровка
+        alpha: прозрачность подсветки (0.0-1.0), где 0.4 = 40% красного
+    """
     # Для дефектов: инвертируем бинарное
     inv = cv2.bitwise_not(binary_img)
     contours, _ = cv2.findContours(binary_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -93,20 +130,50 @@ def detect_defects(binary_img, pixels_per_mm):
     defects_mask = cv2.bitwise_and(inv, inv, mask=mask_wire)
     defect_contours, _ = cv2.findContours(defects_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    vis = cv2.cvtColor(binary_img, cv2.COLOR_GRAY2BGR)
+    # Используем ОРИГИНАЛЬНОЕ цветное изображение
+    if len(original_img.shape) == 2:  # Если вдруг передали ч/б
+        vis = cv2.cvtColor(original_img, cv2.COLOR_GRAY2BGR)
+    else:
+        vis = original_img.copy()
+    
+    # Создаём слой для полупрозрачной подсветки
+    overlay = vis.copy()
+    
     measurements = []
     for i, cnt in enumerate(defect_contours):
         area_px = cv2.contourArea(cnt)
-        if area_px < 5: continue
+        if area_px < 5: 
+            continue
+        
+        # Закрашиваем дефект КРАСНЫМ на overlay слое (по контуру)
+        cv2.drawContours(overlay, [cnt], -1, (0, 0, 255), -1)
+        
         x, y, w, h = cv2.boundingRect(cnt)
-        cv2.rectangle(vis, (x,y), (x+w,y+h), (0,255,0), 1)
-        cv2.putText(vis, f"D{i+1}", (x, y-5), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,0), 1)
+        
         measurements.append({
             "id": i+1,
             "area_mm2": area_px / (pixels_per_mm**2),
             "width_mm": w / pixels_per_mm,
             "height_mm": h / pixels_per_mm
         })
+    
+    # Смешиваем оригинал с overlay (полупрозрачность)
+    vis = cv2.addWeighted(vis, 1 - alpha, overlay, alpha, 0)
+    
+    # Рисуем квадраты и подписи ПОВЕРХ полупрозрачной заливки
+    for i, cnt in enumerate(defect_contours):
+        area_px = cv2.contourArea(cnt)
+        if area_px < 5: 
+            continue
+        
+        x, y, w, h = cv2.boundingRect(cnt)
+        
+        # Зелёный квадрат вокруг дефекта
+        cv2.rectangle(vis, (x, y), (x+w, y+h), (0, 0, 255), 2)
+        
+        # Подпись
+        cv2.putText(vis, f"D{i+1}", (x, y-5), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
 
     return vis, measurements
 
@@ -121,6 +188,56 @@ def select_image():
     return file_path if file_path else None
 
 # Главная функция
+# def pipeline():
+#     print("=== Пайплайн анализа проволоки (бинарное изображение сразу) ===")
+#     print("1. Выберите изображение")
+#     print("2. Увидите бинарное изображение → кликните по двум точкам")
+#     print("3. Введите расстояние → получите результат\n")
+
+#     while True:
+#         image_path = select_image()
+#         if not image_path:
+#             print("Выход")
+#             break
+#         print(f"Выбрано: {image_path}")
+
+#         try:
+
+#             img_array = np.fromfile(image_path, dtype=np.uint8)
+#             img = cv2.imdecode(img_array, cv2.IMREAD_GRAYSCALE)
+
+#             if img is None:
+#                 raise RuntimeError(f"Не удалось загрузить изображение: {image_path}")            
+            
+#             binary_img = binarize_image(img)
+
+#             cv2.imshow("Binary Image (для калибровки)", binary_img)
+#             cv2.waitKey(500)  # небольшая пауза
+#             cv2.destroyWindow("Binary Image (для калибровки)")
+
+#             pixels_per_mm = calibrate(binary_img, image_path)
+#             diameter_mm, diameter_px = measure_wire_diameter(binary_img, pixels_per_mm)
+#             vis_defects, defects = detect_defects(binary_img, pixels_per_mm)
+
+#             print("\n" + "="*60)
+#             print(f"Диаметр: {diameter_mm:.3f} мм ({diameter_px:.1f} px)")
+#             print(f"Найдено дефектов: {len(defects)}")
+#             for d in defects:
+#                 print(f"Дефект {d['id']}: {d['width_mm']:.3f}×{d['height_mm']:.3f} мм, площадь {d['area_mm2']:.4f} мм²")
+#             print("="*60)
+
+#             cv2.imshow("Результат: Дефекты", vis_defects)
+#             cv2.waitKey(0)
+#             cv2.destroyAllWindows()
+
+#             again = input("\nЕщё одно изображение? (y/n): ").strip().lower()
+#             if again != 'y':
+#                 break
+
+#         except Exception as e:
+#             print(f"Ошибка: {e}")
+#             continue
+
 def pipeline():
     print("=== Пайплайн анализа проволоки (бинарное изображение сразу) ===")
     print("1. Выберите изображение")
@@ -135,18 +252,25 @@ def pipeline():
         print(f"Выбрано: {image_path}")
 
         try:
+            # Читаем оригинальное изображение
+            img_array = np.fromfile(image_path, dtype=np.uint8)
+            img_gray = cv2.imdecode(img_array, cv2.IMREAD_GRAYSCALE)
+            img_color = cv2.imdecode(img_array, cv2.IMREAD_COLOR)  # ЦВЕТНОЕ!
 
-            img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-            binary_img = binarize_image(img)
-
+            if img_gray is None:
+                raise RuntimeError(f"Не удалось загрузить изображение: {image_path}")            
+            
+            binary_img = binarize_image(img_gray)
 
             cv2.imshow("Binary Image (для калибровки)", binary_img)
-            cv2.waitKey(500)  # небольшая пауза
+            cv2.waitKey(500)
             cv2.destroyWindow("Binary Image (для калибровки)")
 
             pixels_per_mm = calibrate(binary_img, image_path)
             diameter_mm, diameter_px = measure_wire_diameter(binary_img, pixels_per_mm)
-            vis_defects, defects = detect_defects(binary_img, pixels_per_mm)
+            
+            # Передаём ОРИГИНАЛЬНОЕ цветное изображение
+            vis_defects, defects = detect_defects(binary_img, img_color, pixels_per_mm)
 
             print("\n" + "="*60)
             print(f"Диаметр: {diameter_mm:.3f} мм ({diameter_px:.1f} px)")
@@ -155,7 +279,7 @@ def pipeline():
                 print(f"Дефект {d['id']}: {d['width_mm']:.3f}×{d['height_mm']:.3f} мм, площадь {d['area_mm2']:.4f} мм²")
             print("="*60)
 
-            cv2.imshow("Результат: Дефекты", vis_defects)
+            cv2.imshow("Результат: Дефекты на оригинале", vis_defects)
             cv2.waitKey(0)
             cv2.destroyAllWindows()
 

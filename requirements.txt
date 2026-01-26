@@ -1,0 +1,24 @@
+# PyTorch with CUDA 12.4 support
+# Install separately with:
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+torch>=2.5.0
+torchvision>=0.20.0
+torchaudio>=2.5.0
+
+# YOLO and Computer Vision
+ultralytics>=8.3.0
+opencv-python>=4.10.0
+opencv-contrib-python>=4.10.0
+
+# Image Processing
+pillow>=10.0.0
+numpy>=1.24.0
+
+# Screen Capture
+mss>=9.0.0
+
+# GUI
+# Tkinter comes with Python, no need to install
+
+# Optional: for better performance
+scipy>=1.11.0
