@@ -69,3 +69,15 @@ class ControlPanel:
     def get_confidence(self) -> float:
         """Get confidence threshold"""
         return self.conf_scale.get()
+    
+    def set_calibration_state(self, state: str):
+        """
+        state: 'idle' | 'calibrating' | 'measuring'
+        """
+        styles = {
+            "idle":        ("📏 Calibrate", "#9C27B0"),
+            "calibrating": ("📏 Calibrating...", "#E65100"),
+            "measuring":   ("📐 Measuring",  "#1565C0"),
+        }
+        text, color = styles.get(state, styles["idle"])
+        self.btn_calibrate.config(text=text, bg=color)

@@ -40,7 +40,7 @@ class MainWindow:
         self.calibration_mode = False
         self.calibration_image = None
         self.wire_analyzer = WireAnalyzer()
-        self._calib_clicks = []
+        self.measurement_mode = False  # активируется после калибровки
         
         # Thread-safe cache for confidence value
         self._confidence_cache = self.config.DEFAULT_CONFIDENCE
@@ -70,131 +70,16 @@ class MainWindow:
         self._update_confidence_cache()
         
         self.update_status("Ready")
-    
-    # def on_canvas_click(self, event):
-    #     """Handle canvas click during calibration"""
-    #     if not self.calibration_mode:
-    #         return
         
-    #     # Convert display coordinates to original image coordinates
-    #     orig_x, orig_y = self.canvas.display_to_original_coords(event.x, event.y)
-        
-    #     if orig_x is None or orig_y is None:
-    #         self.update_status("⚠️ Click inside the image area")
-    #         return
-        
-    #     self.calibrator.add_point(orig_x, orig_y)
-        
-    #     num_points = len(self.calibrator.calibration_points)
-        
-    #     # Show point on image
-    #     vis = self.calibrator.get_calibration_visual(self.calibration_image)
-    #     self.canvas.update_frame(vis)
-        
-    #     if num_points == 1:
-    #         self.update_status(f"📏 Point 1 ({orig_x}, {orig_y}), click second point")
-    #     elif num_points == 2:
-    #         # Ask for real distance
-    #         if self.config.AUTO_CALIBRATION_MODE:
-    #             real_dist = self.config.DEFAULT_WIRE_DIAMETER_MM
-    #         else:
-    #             real_dist = simpledialog.askfloat(
-    #                 "Calibration",
-    #                 "Enter real distance between the two points (in mm):",
-    #                 minvalue=0.1,
-    #                 maxvalue=10000.0
-    #             )
-            
-    #         if real_dist:
-    #             try:
-    #                 px_per_mm = self.calibrator.calculate_calibration(real_dist)
-                    
-    #                 # Now measure wire diameter automatically
-    #                 try:
-    #                     diameter_mm, diameter_px = self.measure_wire_width(self.calibration_image, px_per_mm)
-                        
-    #                     # Add both calibration and wire measurement to image
-    #                     vis = self.calibrator.get_calibration_visual(self.calibration_image)
-    #                     cv2.putText(vis, f"Calibration: {px_per_mm:.3f} px/mm", 
-    #                                (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-    #                     cv2.putText(vis, f"Calibration Distance: {real_dist:.2f} mm", 
-    #                                (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-    #                     cv2.putText(vis, f"Wire Diameter: {diameter_mm:.3f} mm ({diameter_px:.1f} px)", 
-    #                                (10, 110), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 2)
-                        
-    #                     self.canvas.update_frame(vis)
-    #                     self.update_status(
-    #                         f"✅ Calibrated! Scale: {px_per_mm:.3f} px/mm | Wire: {diameter_mm:.3f}mm"
-    #                     )
-    #                 except Exception as wire_error:
-    #                     # If wire measurement fails, still show calibration
-    #                     vis = self.calibrator.get_calibration_visual(self.calibration_image)
-    #                     cv2.putText(vis, f"Calibration: {px_per_mm:.3f} px/mm", 
-    #                                (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-    #                     cv2.putText(vis, f"Distance: {real_dist:.2f} mm", 
-    #                                (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-    #                     cv2.putText(vis, f"Wire measurement failed: {str(wire_error)[:40]}", 
-    #                                (10, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
-                        
-    #                     self.canvas.update_frame(vis)
-    #                     self.update_status(
-    #                         f"✅ Calibrated: {px_per_mm:.3f} px/mm (wire measurement failed)"
-    #                     )
-                    
-    #                 self.calibration_mode = False
-                    
-    #             except Exception as e:
-    #                 self.update_status(f"❌ Calibration error: {e}")
-    #                 self.calibrator.reset_calibration()
-    #                 self.calibration_mode = False
-    #         else:
-    #             self.update_status("Calibration cancelled")
-    #             self.calibrator.reset_calibration()
-    #             self.calibration_mode = False
-    
     def on_canvas_click(self, event):
-        if not self.calibration_mode:
-            return
-
         orig_x, orig_y = self.canvas.display_to_original_coords(event.x, event.y)
         if orig_x is None:
-            self.update_status("⚠️ Click inside the image")
             return
 
-        try:
-            diameter_px, top_y, bottom_y = self.wire_analyzer.measure_diameter_at_x(
-                self.calibration_image, orig_x
-            )
-
-            if diameter_px < 2:
-                self.update_status("❌ Could not detect wire edges, try another spot")
-                return
-
-            px_per_mm = diameter_px / self.config.NOMINAL_DIAMETER_MM
-            self.calibrator.pixels_per_mm = px_per_mm
-
-            mean_diameter_px, _ = self.wire_analyzer.measure(self.calibration_image)
-            diameter_mm = mean_diameter_px / px_per_mm
-
-            vis = self._draw_calibration_result(
-                self.calibration_image, orig_x, top_y, bottom_y,
-                diameter_px, diameter_mm, px_per_mm
-            )
-
-            self.canvas.update_frame(vis)
-
-            deviation = diameter_mm - self.config.NOMINAL_DIAMETER_MM
-            self.update_status(
-                f"✅ Calibrated | Scale: {px_per_mm:.3f} px/mm | "
-                f"Measured: {diameter_mm:.3f} mm | "
-                f"Deviation: {deviation:+.3f} mm"
-            )
-
-        except Exception as e:
-            self.update_status(f"❌ Calibration failed: {e}")
-        finally:
-            self.calibration_mode = False
-
+        if self.calibration_mode:
+            self._do_calibration(orig_x)
+        elif self.measurement_mode:
+            self._do_measurement(orig_x)
 
     def _draw_calibration_result(self, image, orig_x, top_y, bottom_y,
                                 diameter_px, diameter_mm, px_per_mm):
@@ -305,43 +190,106 @@ class MainWindow:
         return diameter_mm, diameter_px
         
     def on_calibrate(self):
-        """Start calibration mode"""
         self.stop_capture()
+        self.measurement_mode = False
         self._calib_clicks = []
-        # Load image for calibration
+
         filepath = filedialog.askopenfilename(
             title="Select Image for Calibration",
             filetypes=[("Images", "*.jpg *.jpeg *.png *.bmp"), ("All", "*.*")]
         )
-        
         if not filepath:
             return
-        
+
         try:
-            # Load image (color)
             img_array = np.fromfile(filepath, dtype=np.uint8)
             img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
-            
+
             if img is None:
                 self.update_status("Error loading image")
                 return
-            
-            # Store original image
+
             self.calibration_image = img
-            
-            # Show image
             self.canvas.update_frame(img)
-            
-            # Enter calibration mode
             self.calibration_mode = True
             self.calibrator.set_image(img)
-            
-            self.update_status("📏 Click anywhere on the wire to calibrate")   
-                     
+
+            self.control_panel.set_calibration_state("calibrating")
+            self.update_status("📏 Click on the wire to calibrate")
+
         except Exception as e:
             self.update_status(f"Calibration error: {e}")
             self.calibration_mode = False
-    
+
+
+    def _do_calibration(self, orig_x: int):
+        try:
+            diameter_px, top_y, bottom_y = self.wire_analyzer.measure_diameter_at_x(
+                self.calibration_image, orig_x
+            )
+
+            if diameter_px < 2:
+                self.update_status("❌ Could not detect wire edges, try another spot")
+                return
+
+            px_per_mm = diameter_px / self.config.NOMINAL_DIAMETER_MM
+            self.calibrator.pixels_per_mm = px_per_mm
+
+            # Измеряем по всей картинке через эталонный масштаб
+            mean_diameter_px, _ = self.wire_analyzer.measure(self.calibration_image)
+            diameter_mm = mean_diameter_px / px_per_mm
+
+            vis = self._draw_calibration_result(
+                self.calibration_image, orig_x, top_y, bottom_y,
+                diameter_px, diameter_mm, px_per_mm
+            )
+            self.canvas.update_frame(vis)
+
+            deviation = diameter_mm - self.config.NOMINAL_DIAMETER_MM
+            self.calibration_mode = False
+            self.measurement_mode = True
+            self.control_panel.set_calibration_state("measuring")
+
+            self.update_status(
+                f"✅ Calibrated | Scale: {px_per_mm:.3f} px/mm | "
+                f"Measured: {diameter_mm:.3f} mm | "
+                f"Deviation: {deviation:+.3f} mm | "
+                f"Click anywhere on wire to measure"
+            )
+
+        except Exception as e:
+            self.update_status(f"❌ Calibration failed: {e}")
+            self.calibration_mode = False
+            self.control_panel.set_calibration_state("idle")
+
+
+    def _do_measurement(self, orig_x: int):
+        if not self.calibrator.pixels_per_mm:
+            self.update_status("⚠️ Not calibrated")
+            return
+
+        try:
+            diameter_px, top_y, bottom_y = self.wire_analyzer.measure_diameter_at_x(
+                self.calibration_image, orig_x
+            )
+            diameter_mm = diameter_px / self.calibrator.pixels_per_mm
+
+            vis = self._draw_calibration_result(
+                self.calibration_image, orig_x, top_y, bottom_y,
+                diameter_px, diameter_mm, self.calibrator.pixels_per_mm
+            )
+            self.canvas.update_frame(vis)
+
+            deviation = diameter_mm - self.config.NOMINAL_DIAMETER_MM
+            self.update_status(
+                f"📏 x={orig_x} | "
+                f"{diameter_mm:.3f} mm | "
+                f"Deviation: {deviation:+.3f} mm"
+            )
+
+        except Exception as e:
+            self.update_status(f"❌ Measurement failed: {e}")
+
     def _update_confidence_cache(self):
         """Periodically cache confidence value in thread-safe way"""
         try:
@@ -388,6 +336,9 @@ class MainWindow:
     
     def on_load_image(self):
         """Load static image"""
+        self.measurement_mode = False
+        self.control_panel.set_calibration_state("idle")
+
         self.stop_capture()
         
         filepath = filedialog.askopenfilename(
@@ -442,6 +393,10 @@ class MainWindow:
         """Stop capture"""
         self.stop_capture()
         self.update_status("Capture stopped")
+        self.control_panel.set_calibration_state("idle")
+        self.update_status("Capture stopped")
+
+
     
     def stop_capture(self):
         """Stop current capture"""
