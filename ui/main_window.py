@@ -82,13 +82,12 @@ class MainWindow:
             self._do_measurement(orig_x)
 
     def _draw_calibration_result(self, image, orig_x, top_y, bottom_y,
-                                diameter_px, diameter_mm, px_per_mm):
+                                diameter_px, diameter_mm, px_per_mm, slope=0.0):
         vis = image.copy()
         self._draw_edge_points(vis)
-        self._draw_crosshair(vis, orig_x, top_y, bottom_y)
-        self._draw_info_panel(vis, orig_x, diameter_px, diameter_mm, px_per_mm)
+        self._draw_crosshair(vis, orig_x, top_y, bottom_y, slope)
+        self._draw_info_panel(vis, orig_x, diameter_px, diameter_mm, px_per_mm, slope)
         return vis
-
 
     def _draw_edge_points(self, vis):
         try:
@@ -100,30 +99,59 @@ class MainWindow:
             pass
 
 
-    def _draw_crosshair(self, vis, orig_x, top_y, bottom_y):
+    def _draw_crosshair(self, vis, orig_x, top_y, bottom_y, slope: float = 0.0):
         cross_size = 10
 
-        for y in (top_y, bottom_y):
-            cv2.line(vis, (orig_x - cross_size, y), (orig_x + cross_size, y), (0, 0, 255), 2)
-            cv2.line(vis, (orig_x, y - cross_size), (orig_x, y + cross_size), (0, 0, 255), 2)
+        if abs(slope) > 1e-6:
+            nx, ny = 1.0, -1.0 / slope
+        else:
+            nx, ny = 0.0, 1.0
 
-        cv2.line(vis, (orig_x, top_y), (orig_x, bottom_y), (0, 255, 0), 2)
+        length = np.sqrt(nx**2 + ny**2)
+        nx, ny = nx / length, ny / length
 
-        for label, y in (("TOP", top_y), ("BOT", bottom_y)):
-            font = cv2.FONT_HERSHEY_SIMPLEX
+        cx = orig_x
+        cy = (top_y + bottom_y) // 2
+        half_len = (bottom_y - top_y) / 2
+
+        pt1 = (int(cx - nx * half_len), int(cy - ny * half_len))
+        pt2 = (int(cx + nx * half_len), int(cy + ny * half_len))
+
+        cv2.line(vis, pt1, pt2, (0, 255, 0), 2)
+
+        for pt in (pt1, pt2):
+            perp_x, perp_y = int(ny * cross_size), int(nx * cross_size)
+            cv2.line(vis,
+                    (pt[0] - perp_x, pt[1] - perp_y),
+                    (pt[0] + perp_x, pt[1] + perp_y),
+                    (0, 0, 255), 2)
+
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        for label, pt in (("TOP", pt1), ("BOT", pt2)):
             (tw, th), baseline = cv2.getTextSize(label, font, 0.5, 1)
-            tx, ty = orig_x + 12, y + 5
-
-            # Полупрозрачный фон под лейблом
+            tx, ty = pt[0] + 12, pt[1] + 5
             overlay = vis.copy()
             cv2.rectangle(overlay, (tx - 2, ty - th - 2), (tx + tw + 2, ty + baseline + 2), (0, 0, 0), -1)
             cv2.addWeighted(overlay, 0.6, vis, 0.4, 0, vis)
-
             cv2.putText(vis, label, (tx, ty), font, 0.5, (0, 0, 255), 1)
 
-    def _draw_info_panel(self, vis, orig_x, diameter_px, diameter_mm, px_per_mm):
+        # Подпись slope прямо у точки замера — вдоль провода чуть правее центра
+        angle_deg = np.degrees(np.arctan(slope))
+        slope_text = f"{angle_deg:+.1f} deg"
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        (tw, th), baseline = cv2.getTextSize(slope_text, font, 0.5, 1)
+        tx = cx + 12
+        ty = cy - 8  # чуть выше центра чтобы не перекрывать линию
+
+        overlay = vis.copy()
+        cv2.rectangle(overlay, (tx - 2, ty - th - 2), (tx + tw + 2, ty + baseline + 2), (0, 0, 0), -1)
+        cv2.addWeighted(overlay, 0.6, vis, 0.4, 0, vis)
+        cv2.putText(vis, slope_text, (tx, ty), font, 0.5, (200, 200, 200), 1)
+            
+    def _draw_info_panel(self, vis, orig_x, diameter_px, diameter_mm, px_per_mm, slope: float = 0.0):
         deviation = diameter_mm - self.config.NOMINAL_DIAMETER_MM
         indicator_color, indicator_label = self._deviation_indicator(abs(deviation))
+        angle_deg = np.degrees(np.arctan(slope))
 
         font = cv2.FONT_HERSHEY_SIMPLEX
         lines = [
@@ -133,8 +161,9 @@ class MainWindow:
             (f"Measured:   {diameter_mm:.3f} mm",                       (255, 255, 255), 0.62, 1),
             (f"Deviation:  {deviation:+.3f} mm",                        indicator_color, 0.62, 1),
             ("",                                                        None,            0.4,  1),
-            (f"Scale:      {px_per_mm:.3f} px/mm",                      (180, 180, 180), 0.58, 1),
-            (f"Calib px:   {diameter_px} px  @ x={orig_x}",            (180, 180, 180), 0.58, 1),
+            (f"Scale:      {px_per_mm:.2f} px/mm",                      (180, 180, 180), 0.58, 1),
+            (f"Calib px:   {diameter_px:.2f} px  @ x={orig_x}",         (180, 180, 180), 0.58, 1),
+            (f"Slope:      {angle_deg:.3f} deg",                        (180, 180, 180), 0.58, 1),
         ]
 
         pad, line_gap = 10, 6
@@ -150,16 +179,13 @@ class MainWindow:
 
         block_w += pad * 2
 
-        # Полупрозрачный фон
         overlay = vis.copy()
         cv2.rectangle(overlay, (10, 10), (10 + block_w, 10 + block_h), (0, 0, 0), -1)
         cv2.addWeighted(overlay, 0.6, vis, 0.4, 0, vis)
 
-        # Рамка и цветная полоска
         cv2.rectangle(vis, (10, 10), (10 + block_w, 10 + block_h), (60, 60, 60), 1)
         cv2.rectangle(vis, (10, 10), (14, 10 + block_h), indicator_color, -1)
 
-        # Текст
         y_cursor = 10 + pad
         for text, color, fs, th in lines:
             if not text:
@@ -169,9 +195,8 @@ class MainWindow:
             cv2.putText(vis, text, (10 + pad + 6, y_cursor + lh), font, fs, color, th)
             y_cursor += lh + baseline + line_gap
 
-        # Плашка индикатора
         (lw, lh), _ = cv2.getTextSize(indicator_label, font, 0.55, 2)
-        lx, ly = 10, 10 + block_h + lh + 10   # под блоком, не внутри
+        lx, ly = 10, 10 + block_h + lh + 10
         cv2.rectangle(vis, (lx, ly - lh - 4), (lx + lw + 12, ly + 4), indicator_color, -1)
         cv2.putText(vis, indicator_label, (lx + 6, ly), font, 0.55, (0, 0, 0), 2)
 
@@ -189,10 +214,22 @@ class MainWindow:
         diameter_mm = diameter_px / px_per_mm
         return diameter_mm, diameter_px
         
+    def on_measure_mode(self):
+        """Переключиться в режим измерения"""
+        if not self.calibrator.pixels_per_mm:
+            self.update_status("⚠️ Calibrate first")
+            return
+
+        self.calibration_mode = False
+        self.measurement_mode = True
+        self.control_panel.set_active_mode("measure")
+        self.update_status("📐 Measurement mode — click anywhere on wire")
+
+
     def on_calibrate(self):
+        """Переключиться в режим калибровки"""
         self.stop_capture()
         self.measurement_mode = False
-        self._calib_clicks = []
 
         filepath = filedialog.askopenfilename(
             title="Select Image for Calibration",
@@ -213,8 +250,7 @@ class MainWindow:
             self.canvas.update_frame(img)
             self.calibration_mode = True
             self.calibrator.set_image(img)
-
-            self.control_panel.set_calibration_state("calibrating")
+            self.control_panel.set_active_mode("calibrate")
             self.update_status("📏 Click on the wire to calibrate")
 
         except Exception as e:
@@ -224,7 +260,7 @@ class MainWindow:
 
     def _do_calibration(self, orig_x: int):
         try:
-            diameter_px, top_y, bottom_y = self.wire_analyzer.measure_diameter_at_x(
+            diameter_px, top_y, bottom_y, slope = self.wire_analyzer.measure_diameter_at_x(
                 self.calibration_image, orig_x
             )
 
@@ -235,32 +271,72 @@ class MainWindow:
             px_per_mm = diameter_px / self.config.NOMINAL_DIAMETER_MM
             self.calibrator.pixels_per_mm = px_per_mm
 
-            # Измеряем по всей картинке через эталонный масштаб
             mean_diameter_px, _ = self.wire_analyzer.measure(self.calibration_image)
             diameter_mm = mean_diameter_px / px_per_mm
 
+            # Сохраняем чистый кадр ДО оверлея — чтобы можно было мерить эту же картинку
+            self.canvas.set_source_frame(self.calibration_image)
+
             vis = self._draw_calibration_result(
                 self.calibration_image, orig_x, top_y, bottom_y,
-                diameter_px, diameter_mm, px_per_mm
+                diameter_px, diameter_mm, px_per_mm, slope
             )
             self.canvas.update_frame(vis)
 
             deviation = diameter_mm - self.config.NOMINAL_DIAMETER_MM
             self.calibration_mode = False
-            self.measurement_mode = True
-            self.control_panel.set_calibration_state("measuring")
-
+            self.control_panel.enable_measure()
+            self.control_panel.set_active_mode(None)
             self.update_status(
                 f"✅ Calibrated | Scale: {px_per_mm:.3f} px/mm | "
                 f"Measured: {diameter_mm:.3f} mm | "
-                f"Deviation: {deviation:+.3f} mm | "
-                f"Click anywhere on wire to measure"
+                f"Deviation: {deviation:+.3f} mm"
             )
 
         except Exception as e:
             self.update_status(f"❌ Calibration failed: {e}")
             self.calibration_mode = False
-            self.control_panel.set_calibration_state("idle")
+            self.control_panel.set_active_mode(None)
+            
+    # def _do_calibration(self, orig_x: int):
+    #     try:
+    #         diameter_px, top_y, bottom_y = self.wire_analyzer.measure_diameter_at_x(
+    #             self.calibration_image, orig_x
+    #         )
+
+    #         if diameter_px < 2:
+    #             self.update_status("❌ Could not detect wire edges, try another spot")
+    #             return
+
+    #         px_per_mm = diameter_px / self.config.NOMINAL_DIAMETER_MM
+    #         self.calibrator.pixels_per_mm = px_per_mm
+
+    #         # Измеряем по всей картинке через эталонный масштаб
+    #         mean_diameter_px, _ = self.wire_analyzer.measure(self.calibration_image)
+    #         diameter_mm = mean_diameter_px / px_per_mm
+
+    #         vis = self._draw_calibration_result(
+    #             self.calibration_image, orig_x, top_y, bottom_y,
+    #             diameter_px, diameter_mm, px_per_mm
+    #         )
+    #         self.canvas.update_frame(vis)
+
+    #         deviation = diameter_mm - self.config.NOMINAL_DIAMETER_MM
+    #         self.calibration_mode = False
+    #         self.measurement_mode = True
+    #         self.control_panel.set_calibration_state("measuring")
+
+    #         self.update_status(
+    #             f"✅ Calibrated | Scale: {px_per_mm:.3f} px/mm | "
+    #             f"Measured: {diameter_mm:.3f} mm | "
+    #             f"Deviation: {deviation:+.3f} mm | "
+    #             f"Click anywhere on wire to measure"
+    #         )
+
+    #     except Exception as e:
+    #         self.update_status(f"❌ Calibration failed: {e}")
+    #         self.calibration_mode = False
+    #         self.control_panel.set_calibration_state("idle")
 
 
     def _do_measurement(self, orig_x: int):
@@ -268,28 +344,34 @@ class MainWindow:
             self.update_status("⚠️ Not calibrated")
             return
 
+        # Всегда берём чистый кадр
+        current_frame = self.canvas.get_current_frame()
+        if current_frame is None:
+            self.update_status("⚠️ No image to measure")
+            return
+
         try:
-            diameter_px, top_y, bottom_y = self.wire_analyzer.measure_diameter_at_x(
-                self.calibration_image, orig_x
+            diameter_px, top_y, bottom_y, slope = self.wire_analyzer.measure_diameter_at_x(
+                current_frame, orig_x
             )
             diameter_mm = diameter_px / self.calibrator.pixels_per_mm
 
+            # Рисуем оверлей поверх чистого кадра — не сохраняем результат обратно
             vis = self._draw_calibration_result(
-                self.calibration_image, orig_x, top_y, bottom_y,
-                diameter_px, diameter_mm, self.calibrator.pixels_per_mm
+                current_frame, orig_x, top_y, bottom_y,
+                diameter_px, diameter_mm, self.calibrator.pixels_per_mm, slope
             )
-            self.canvas.update_frame(vis)
+            self.canvas.update_frame(vis)   # показываем с оверлеем
+            # НЕ вызываем set_source_frame — чистый кадр остаётся нетронутым
 
             deviation = diameter_mm - self.config.NOMINAL_DIAMETER_MM
             self.update_status(
-                f"📏 x={orig_x} | "
-                f"{diameter_mm:.3f} mm | "
-                f"Deviation: {deviation:+.3f} mm"
+                f"📐 x={orig_x} | {diameter_mm:.3f} mm | Deviation: {deviation:+.3f} mm"
             )
 
         except Exception as e:
             self.update_status(f"❌ Measurement failed: {e}")
-
+            
     def _update_confidence_cache(self):
         """Periodically cache confidence value in thread-safe way"""
         try:
@@ -329,6 +411,8 @@ class MainWindow:
         self.control_panel.btn_stop.config(command=self.on_stop)
         self.control_panel.btn_calibrate.config(command=self.on_calibrate)
         self.control_panel.camera_combo.bind("<<ComboboxSelected>>", self.on_camera_change)
+        self.control_panel.btn_measure.config(command=self.on_measure_mode)
+
     
     def update_status(self, message: str):
         """Update status bar"""
@@ -337,8 +421,11 @@ class MainWindow:
     def on_load_image(self):
         """Load static image"""
         self.measurement_mode = False
-        self.control_panel.set_calibration_state("idle")
-
+        self.calibration_mode = False
+        self.control_panel.set_active_mode(None)
+        # Отключаем measure только если ещё не калибровали
+        if not self.calibrator.pixels_per_mm:
+            self.control_panel.disable_measure()
         self.stop_capture()
         
         filepath = filedialog.askopenfilename(
@@ -350,6 +437,8 @@ class MainWindow:
             capture = ImageCapture()
             if capture.load(filepath):
                 frame = capture.read_frame()
+                self.canvas.set_source_frame(frame)      # чистый кадр
+
                 processed, detections = self.detector.predict(
                     frame, 
                     self._get_confidence(),
@@ -392,8 +481,10 @@ class MainWindow:
     def on_stop(self):
         """Stop capture"""
         self.stop_capture()
-        self.update_status("Capture stopped")
-        self.control_panel.set_calibration_state("idle")
+        self.measurement_mode = False
+        self.control_panel.set_active_mode(None)
+        if not self.calibrator.pixels_per_mm:
+            self.control_panel.disable_measure()
         self.update_status("Capture stopped")
 
 
@@ -414,6 +505,7 @@ class MainWindow:
         while self.current_capture and self.current_capture.running:
             frame = self.current_capture.read_frame()
             if frame is not None:
+                self.canvas.set_source_frame(frame)   # чистый кадр
                 processed, detections = self.detector.predict(
                     frame,
                     self._get_confidence(),

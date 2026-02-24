@@ -37,19 +37,24 @@ class ControlPanel:
         self.btn_stop.grid(row=0, column=3, padx=5, pady=5)
         
         # Calibration button
-        self.btn_calibrate = tk.Button(self.frame, text="📏 Calibrate", 
-                                       bg="#9C27B0", fg="white", **btn_style)
+        self.btn_calibrate = tk.Button(self.frame, text="📏 Calibrate",
+                                        bg="#9C27B0", fg="white", **btn_style)
         self.btn_calibrate.grid(row=0, column=4, padx=5, pady=5)
+
+        self.btn_measure = tk.Button(self.frame, text="📐 Measure",
+                                    bg="#1565C0", fg="white", **btn_style,
+                                    state=tk.DISABLED)  # недоступна пока нет калибровки
+        self.btn_measure.grid(row=0, column=5, padx=5, pady=5)
         
         # Camera selector
         tk.Label(self.frame, text="Camera:", bg=self.config.COLOR_BG, 
-                fg="white", font=("Arial", 10)).grid(row=0, column=5, padx=5)
+                fg="white", font=("Arial", 10)).grid(row=0, column=6, padx=5)
         self.camera_combo = ttk.Combobox(self.frame, width=18, state="readonly")
         self.camera_combo.grid(row=0, column=6, padx=5)
         
         # Confidence slider
         tk.Label(self.frame, text="Confidence:", bg=self.config.COLOR_BG, 
-                fg="white", font=("Arial", 10)).grid(row=0, column=7, padx=5)
+                fg="white", font=("Arial", 10)).grid(row=0, column=8, padx=5)
         self.conf_scale = tk.Scale(self.frame, from_=0.1, to=0.9, resolution=0.05,
                                     orient=tk.HORIZONTAL, bg=self.config.COLOR_BG, 
                                     fg="white", length=120)
@@ -81,3 +86,15 @@ class ControlPanel:
         }
         text, color = styles.get(state, styles["idle"])
         self.btn_calibrate.config(text=text, bg=color)
+    
+    def enable_measure(self):
+        self.btn_measure.config(state=tk.NORMAL)
+    
+    def disable_measure(self):
+        self.btn_measure.config(state=tk.DISABLED)
+
+
+    def set_active_mode(self, mode: str):
+        """mode: 'calibrate' | 'measure' | None"""
+        self.btn_calibrate.config(relief=tk.SUNKEN if mode == "calibrate" else tk.RAISED)
+        self.btn_measure.config(relief=tk.SUNKEN if mode == "measure" else tk.RAISED)
