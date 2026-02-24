@@ -24,3 +24,8 @@ class Config:
     
     # Camera detection
     MAX_CAMERA_INDEX = 10
+    
+    # Calibration
+    NOMINAL_DIAMETER_MM = 1.88
+    TOLERANCE_OK   = 0.03  # мм
+    TOLERANCE_WARN = 0.07  # мм    DEFAULT_WIRE_DIAMETER_MM = 1.88
