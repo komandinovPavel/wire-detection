@@ -31,6 +31,16 @@ def test_frame_result_error_factory_sets_error_status():
     assert result.detections == []
 
 
+def test_frame_result_separates_current_detections_from_new_events():
+    current = [Detection("scratch", 0.9, (1, 1, 10, 10))]
+    new_events = [Detection("scratch", 0.9, (1, 1, 10, 10))]
+
+    result = FrameResult(detections=current, new_detections=new_events)
+
+    assert result.detections is current
+    assert result.new_detections is new_events
+
+
 def test_runtime_snapshot_exposes_status_and_source():
     snapshot = RuntimeSnapshot(
         status=RuntimeStatus.RUNNING,

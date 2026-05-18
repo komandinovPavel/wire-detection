@@ -45,6 +45,7 @@ class FrameResult:
     source_frame: Any = None
     display_frame: Any = None
     detections: list[Detection] = field(default_factory=list)
+    new_detections: list[Detection] = field(default_factory=list)
     stats: DefectStats = field(default_factory=DefectStats)
     status: RuntimeStatus = RuntimeStatus.READY
     message: str = ""
