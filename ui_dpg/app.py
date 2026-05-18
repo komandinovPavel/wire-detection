@@ -30,6 +30,14 @@ class DearPyGuiApp:
         self.viewport = ViewportView()
         self.defects = DefectsPanelView()
         self.status = StatusBarView()
+        self.controls = ControlPanelView(
+            self.controller,
+            self._load_image,
+            self.controller.start_screen,
+            self.controller.start_camera,
+            self.controller.stop,
+            self.controller.clear_defects,
+        )
         self._last_rendered_result = None
 
     def run(self) -> None:
@@ -49,13 +57,7 @@ class DearPyGuiApp:
 
     def _build(self) -> None:
         with dpg.window(label="Wire Defect Detector", tag=self.MAIN_WINDOW_TAG, width=self.config.WINDOW_WIDTH, height=self.config.WINDOW_HEIGHT):
-            ControlPanelView(
-                self.controller,
-                self._load_image,
-                self.controller.start_screen,
-                self.controller.start_camera,
-                self.controller.stop,
-            ).build()
+            self.controls.build()
             with dpg.group(tag=self.CONTENT_GROUP_TAG, horizontal=True):
                 with dpg.child_window(tag=self.VIEWPORT_PANEL_TAG, width=980, height=590, border=True):
                     self.viewport.build()
@@ -79,11 +81,13 @@ class DearPyGuiApp:
         result = self.controller.poll_latest_frame()
         if result is not None and result is not self._last_rendered_result:
             self.viewport.update_frame(result.display_frame)
-            self.defects.update(result.detections, result.stats)
+            self.defects.update(result.new_detections, result.stats)
             self._last_rendered_result = result
         elif result is not None and layout_changed:
             self.viewport.update_frame(result.display_frame)
-        self.status.update(self.controller.get_status())
+        snapshot = self.controller.get_status()
+        self.controls.update(snapshot)
+        self.status.update(snapshot, result)
 
     def _apply_layout(self) -> bool:
         client_width = max(self.config.WINDOW_WIDTH, dpg.get_viewport_client_width())
