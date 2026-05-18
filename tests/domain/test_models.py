@@ -1,8 +1,10 @@
 from domain import (
     AppMode,
     DefectStats,
+    CalibrationResult,
     Detection,
     FrameResult,
+    MeasurementResult,
     ProcessingSettings,
     RuntimeSnapshot,
     RuntimeStatus,
@@ -40,6 +42,45 @@ def test_frame_result_separates_current_detections_from_new_events():
 
     assert result.detections is current
     assert result.new_detections is new_events
+
+
+def test_measurement_result_derives_deviation_and_tolerance():
+    result = MeasurementResult(
+        x=120,
+        diameter_px=188.0,
+        diameter_mm=1.92,
+        pixels_per_mm=100.0,
+        top_y=10,
+        bottom_y=198,
+        slope=0.0,
+        nominal_diameter_mm=1.88,
+        tolerance_ok=0.03,
+        tolerance_warn=0.07,
+    )
+
+    assert result.deviation_mm == 0.04
+    assert result.tolerance_level == "warn"
+    assert result.tolerance_label == "WARNING"
+
+
+def test_calibration_result_exposes_scale_and_measured_diameter():
+    result = CalibrationResult(
+        x=100,
+        calibration_diameter_px=188.0,
+        measured_diameter_px=190.0,
+        measured_diameter_mm=1.9,
+        pixels_per_mm=100.0,
+        top_y=10,
+        bottom_y=198,
+        slope=0.1,
+        nominal_diameter_mm=1.88,
+        tolerance_ok=0.03,
+        tolerance_warn=0.07,
+    )
+
+    assert result.deviation_mm == 0.02
+    assert result.tolerance_level == "ok"
+    assert result.tolerance_label == "IN TOLERANCE"
 
 
 def test_runtime_snapshot_exposes_status_and_source():

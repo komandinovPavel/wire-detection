@@ -7,8 +7,10 @@ class ControlPanelView:
     IMAGE_BUTTON = "source_image_button"
     SCREEN_BUTTON = "source_screen_button"
     CAMERA_BUTTON = "source_camera_button"
+    MEASURE_BUTTON = "measure_button"
     STOP_BUTTON = "stop_button"
     CLEAR_BUTTON = "clear_defects_button"
+    CALIBRATE_BUTTON = "calibrate_button"
     SETTINGS_BUTTON = "settings_button"
     CAMERA_COMBO = "camera_combo"
     NORMAL_THEME = "normal_button_theme"
@@ -24,6 +26,8 @@ class ControlPanelView:
         on_stop,
         on_clear_defects,
         on_open_settings,
+        on_open_calibration,
+        on_start_measurement,
     ):
         self._controller = controller
         self._on_load_image = on_load_image
@@ -32,6 +36,8 @@ class ControlPanelView:
         self._on_stop = on_stop
         self._on_clear_defects = on_clear_defects
         self._on_open_settings = on_open_settings
+        self._on_open_calibration = on_open_calibration
+        self._on_start_measurement = on_start_measurement
 
     def build(self) -> None:
         self._build_themes()
@@ -42,6 +48,8 @@ class ControlPanelView:
             dpg.add_text("Camera list")
             dpg.add_combo(tag=self.CAMERA_COMBO, items=["0"], default_value="0", width=72)
             dpg.add_button(label="Refresh", width=90, height=36, callback=lambda: self.refresh_cameras())
+            dpg.add_button(tag=self.CALIBRATE_BUTTON, label="Calibrate", width=112, height=36, callback=lambda: self._on_open_calibration())
+            dpg.add_button(tag=self.MEASURE_BUTTON, label="Measure", width=112, height=36, callback=lambda: self._on_start_measurement())
             dpg.add_button(tag=self.STOP_BUTTON, label="Stop", width=100, height=36, callback=lambda: self._on_stop())
             dpg.add_button(tag=self.CLEAR_BUTTON, label="Clear", width=100, height=36, callback=lambda: self._on_clear_defects())
             dpg.add_button(tag=self.SETTINGS_BUTTON, label="Settings", width=112, height=36, callback=lambda: self._on_open_settings())

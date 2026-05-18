@@ -1,6 +1,15 @@
 from app.controller import AppController
 from app.state import AppState
-from domain import DefectStats, FrameResult, ProcessingSettings, RuntimeStatus, SourceType
+from domain import (
+    AppMode,
+    CalibrationResult,
+    DefectStats,
+    FrameResult,
+    MeasurementResult,
+    ProcessingSettings,
+    RuntimeStatus,
+    SourceType,
+)
 
 
 class StubCaptureService:
@@ -72,12 +81,69 @@ class StubProcessor:
         return DefectStats(total=0, by_class={})
 
 
+class StubCalibrationService:
+    def __init__(self):
+        self.pixels_per_mm = None
+        self.calibrated_at = []
+        self.measured_at = []
+        self.reset_called = False
+
+    def is_calibrated(self):
+        return self.pixels_per_mm is not None
+
+    def calibrate_at(self, frame, x):
+        self.calibrated_at.append((frame, x))
+        self.pixels_per_mm = 100.0
+        return CalibrationResult(
+            x=x,
+            calibration_diameter_px=188.0,
+            measured_diameter_px=190.0,
+            measured_diameter_mm=1.9,
+            pixels_per_mm=100.0,
+            top_y=10,
+            bottom_y=198,
+            slope=0.0,
+            nominal_diameter_mm=1.88,
+            tolerance_ok=0.03,
+            tolerance_warn=0.07,
+        )
+
+    def measure_at(self, frame, x):
+        self.measured_at.append((frame, x))
+        return MeasurementResult(
+            x=x,
+            diameter_px=188.0,
+            diameter_mm=1.88,
+            pixels_per_mm=100.0,
+            top_y=10,
+            bottom_y=198,
+            slope=0.0,
+            nominal_diameter_mm=1.88,
+            tolerance_ok=0.03,
+            tolerance_warn=0.07,
+        )
+
+    def reset(self):
+        self.reset_called = True
+        self.pixels_per_mm = None
+
+
+class StubMeasurementOverlay:
+    def render_calibration(self, frame, result):
+        return ("calibration_overlay", frame, result)
+
+    def render_measurement(self, frame, result):
+        return ("measurement_overlay", frame, result)
+
+
 def make_controller():
     state = AppState()
     capture = StubCaptureService()
     processor = StubProcessor()
     runtime = StubRuntime()
-    controller = AppController(capture, processor, runtime, state)
+    calibration = StubCalibrationService()
+    overlay = StubMeasurementOverlay()
+    controller = AppController(capture, processor, runtime, state, calibration, overlay)
     return controller, capture, runtime
 
 
@@ -193,6 +259,64 @@ def test_start_camera_failure_sets_error_status_without_starting_runtime():
     assert runtime.is_running is False
     assert controller.get_status().status is RuntimeStatus.ERROR
     assert "Camera" in controller.get_status().message
+
+
+def test_load_calibration_image_loads_frame_without_running_detection():
+    controller, capture, runtime = make_controller()
+
+    frame = controller.load_calibration_image("calibration.jpg")
+
+    assert frame is capture.frame
+    assert runtime.is_running is False
+    assert controller.get_status().mode is AppMode.CALIBRATE
+
+
+def test_calibrate_at_uses_loaded_calibration_frame_and_returns_overlay():
+    controller, capture, _ = make_controller()
+    controller.load_calibration_image("calibration.jpg")
+
+    result, overlay = controller.calibrate_at(42)
+
+    assert result.pixels_per_mm == 100.0
+    assert overlay[0] == "calibration_overlay"
+    assert overlay[1] is capture.frame
+    assert controller.is_calibrated() is True
+
+
+def test_start_measurement_mode_freezes_latest_source_frame():
+    controller, _, _ = make_controller()
+    controller.load_calibration_image("calibration.jpg")
+    controller.calibrate_at(42)
+    frame = object()
+    controller._latest_frame = FrameResult(source_frame=frame, display_frame=object())
+
+    frozen = controller.start_measurement_mode()
+
+    assert frozen is frame
+    assert controller.get_status().mode is AppMode.MEASURE
+
+
+def test_measure_at_uses_frozen_measurement_frame():
+    controller, capture, _ = make_controller()
+    controller.load_calibration_image("calibration.jpg")
+    controller.calibrate_at(42)
+    controller.start_measurement_mode()
+
+    result, overlay = controller.measure_at(50)
+
+    assert result.diameter_mm == 1.88
+    assert overlay[0] == "measurement_overlay"
+    assert overlay[1] is capture.frame
+
+
+def test_clear_output_resets_latest_frame_and_stats():
+    controller, _, _ = make_controller()
+    controller._latest_frame = FrameResult(source_frame=object(), display_frame=object())
+
+    controller.clear_output()
+
+    assert controller.poll_latest_frame() is None
+    assert controller.get_status().stats.total == 0
 
 
 def test_stop_stops_runtime_and_capture():

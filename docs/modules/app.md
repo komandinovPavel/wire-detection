@@ -8,6 +8,7 @@ The `app` layer contains application use-case orchestration. It sits between UI 
 - Manage runtime state and background processing.
 - Provide snapshots/results for UI polling.
 - Provide UI-safe commands for camera discovery, runtime setting changes, and defect history clearing.
+- Expose calibration and measurement commands while keeping OpenCV math in services.
 - Keep UI code away from YOLO, OpenCV capture sources, and defect-counting internals.
 
 ## Current Classes
@@ -24,6 +25,8 @@ The `app` layer contains application use-case orchestration. It sits between UI 
 - If a previous worker does not stop inside its timeout, runtime raises `RuntimeError` instead of hiding a still-live thread.
 - `AppController.start_camera()` and `start_screen()` convert source startup failures into `RuntimeStatus.ERROR` snapshots instead of letting UI callbacks crash.
 - `AppController.set_deduplication_enabled()` updates `ProcessingSettings` while preserving confidence and image size.
+- `AppController.load_calibration_image()` loads a clean calibration frame without running YOLO.
+- `AppController.start_measurement_mode()` freezes the latest clean frame so clicks measure the image the user sees.
 
 ## Dependencies
 

@@ -7,6 +7,8 @@ import dearpygui.dearpygui as dpg
 
 from app.factory import build_controller
 from core.config import Config
+from domain import AppMode
+from ui_dpg.views.calibration_window import CalibrationWindowView
 from ui_dpg.views.control_panel import ControlPanelView
 from ui_dpg.views.defects_panel import DefectsPanelView
 from ui_dpg.views.settings_window import SettingsWindowView
@@ -29,9 +31,11 @@ class DearPyGuiApp:
         self.config = config or Config()
         self.controller = build_controller(self.config)
         self.viewport = ViewportView()
+        self.viewport.set_on_click(self._handle_viewport_click)
         self.defects = DefectsPanelView()
         self.status = StatusBarView()
         self.settings = SettingsWindowView(self.controller)
+        self.calibration = CalibrationWindowView(self._load_calibration_image, self._calibrate_at)
         self.controls = ControlPanelView(
             self.controller,
             self._load_image,
@@ -40,6 +44,8 @@ class DearPyGuiApp:
             self.controller.stop,
             self._clear_defects,
             self.settings.show,
+            self.calibration.show,
+            self._start_measurement_mode,
         )
         self._last_rendered_result = None
 
@@ -67,7 +73,8 @@ class DearPyGuiApp:
                 with dpg.child_window(tag=self.DEFECTS_PANEL_TAG, width=self.DEFECTS_PANEL_WIDTH, height=590, border=True):
                     self.defects.build()
             self.status.build()
-            self.settings.build()
+        self.settings.build()
+        self.calibration.build()
 
     def _load_image(self) -> None:
         root = tk.Tk()
@@ -81,11 +88,57 @@ class DearPyGuiApp:
             self.controller.load_image(path)
 
     def _clear_defects(self) -> None:
-        self.controller.clear_defects()
+        self.controller.clear_output()
         self.defects.clear()
+        self.viewport.clear()
+        self._last_rendered_result = None
+
+    def _load_calibration_image(self) -> None:
+        root = tk.Tk()
+        root.withdraw()
+        path = filedialog.askopenfilename(
+            title="Select Calibration Image",
+            filetypes=[("Images", "*.jpg *.jpeg *.png *.bmp"), ("All", "*.*")],
+        )
+        root.destroy()
+        if path:
+            frame = self.controller.load_calibration_image(path)
+            self.calibration.update_frame(frame)
+            self.calibration.update_loaded()
+
+    def _calibrate_at(self, x: int) -> None:
+        try:
+            result, overlay = self.controller.calibrate_at(x)
+        except Exception:
+            return
+        self.calibration.update_frame(overlay)
+        self.calibration.update_result(result)
+
+    def _start_measurement_mode(self) -> None:
+        try:
+            frame = self.controller.start_measurement_mode()
+        except Exception:
+            return
+        self.viewport.update_frame(frame)
+        self._last_rendered_result = None
+
+    def _handle_viewport_click(self, x: int, y: int) -> None:
+        if self.controller.get_status().mode is not AppMode.MEASURE:
+            return
+        try:
+            _, overlay = self.controller.measure_at(x)
+        except Exception:
+            return
+        self.viewport.update_frame(overlay)
 
     def _update(self) -> None:
         layout_changed = self._apply_layout()
+        snapshot = self.controller.get_status()
+        if snapshot.mode is AppMode.MEASURE:
+            self.controls.update(snapshot)
+            self.settings.update(snapshot)
+            self.status.update(snapshot, None)
+            return
         result = self.controller.poll_latest_frame()
         if result is not None and result is not self._last_rendered_result:
             self.viewport.update_frame(result.display_frame)
@@ -93,7 +146,6 @@ class DearPyGuiApp:
             self._last_rendered_result = result
         elif result is not None and layout_changed:
             self.viewport.update_frame(result.display_frame)
-        snapshot = self.controller.get_status()
         self.controls.update(snapshot)
         self.settings.update(snapshot)
         self.status.update(snapshot, result)

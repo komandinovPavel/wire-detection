@@ -13,6 +13,23 @@ def fit_size(source_w: int, source_h: int, max_w: int, max_h: int) -> tuple[int,
     return width, height
 
 
+def map_display_to_source(
+    display_x: float,
+    display_y: float,
+    source_w: int,
+    source_h: int,
+    display_w: int,
+    display_h: int,
+) -> tuple[int, int] | None:
+    if source_w <= 0 or source_h <= 0 or display_w <= 0 or display_h <= 0:
+        return None
+    source_x = int(display_x * source_w / display_w)
+    source_y = int(display_y * source_h / display_h)
+    source_x = max(0, min(source_x, source_w - 1))
+    source_y = max(0, min(source_y, source_h - 1))
+    return source_x, source_y
+
+
 def bgr_frame_to_rgba_float(frame: np.ndarray) -> list[float]:
     rgba = cv2.cvtColor(frame, cv2.COLOR_BGR2RGBA)
     return (rgba.astype(float) / 255.0).ravel().tolist()

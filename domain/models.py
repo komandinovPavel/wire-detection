@@ -41,6 +41,63 @@ class DefectStats:
     by_class: Mapping[str, int] = field(default_factory=dict)
 
 
+def _tolerance_level(abs_deviation: float, tolerance_ok: float, tolerance_warn: float) -> tuple[str, str]:
+    if abs_deviation < tolerance_ok:
+        return "ok", "IN TOLERANCE"
+    if abs_deviation < tolerance_warn:
+        return "warn", "WARNING"
+    return "error", "OUT OF TOLERANCE"
+
+
+@dataclass(frozen=True)
+class MeasurementResult:
+    x: int
+    diameter_px: float
+    diameter_mm: float
+    pixels_per_mm: float
+    top_y: int
+    bottom_y: int
+    slope: float
+    nominal_diameter_mm: float
+    tolerance_ok: float
+    tolerance_warn: float
+    deviation_mm: float = field(init=False)
+    tolerance_level: str = field(init=False)
+    tolerance_label: str = field(init=False)
+
+    def __post_init__(self) -> None:
+        deviation = round(float(self.diameter_mm - self.nominal_diameter_mm), 6)
+        level, label = _tolerance_level(abs(deviation), self.tolerance_ok, self.tolerance_warn)
+        object.__setattr__(self, "deviation_mm", deviation)
+        object.__setattr__(self, "tolerance_level", level)
+        object.__setattr__(self, "tolerance_label", label)
+
+
+@dataclass(frozen=True)
+class CalibrationResult:
+    x: int
+    calibration_diameter_px: float
+    measured_diameter_px: float
+    measured_diameter_mm: float
+    pixels_per_mm: float
+    top_y: int
+    bottom_y: int
+    slope: float
+    nominal_diameter_mm: float
+    tolerance_ok: float
+    tolerance_warn: float
+    deviation_mm: float = field(init=False)
+    tolerance_level: str = field(init=False)
+    tolerance_label: str = field(init=False)
+
+    def __post_init__(self) -> None:
+        deviation = round(float(self.measured_diameter_mm - self.nominal_diameter_mm), 6)
+        level, label = _tolerance_level(abs(deviation), self.tolerance_ok, self.tolerance_warn)
+        object.__setattr__(self, "deviation_mm", deviation)
+        object.__setattr__(self, "tolerance_level", level)
+        object.__setattr__(self, "tolerance_label", label)
+
+
 @dataclass(frozen=True)
 class FrameResult:
     source_frame: Any = None
