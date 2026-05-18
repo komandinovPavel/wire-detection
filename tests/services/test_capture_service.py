@@ -96,3 +96,15 @@ def test_load_image_raises_clear_error_when_file_cannot_load():
         assert "Could not load image" in str(exc)
     else:
         raise AssertionError("Expected RuntimeError")
+
+
+def test_available_cameras_uses_probe_and_returns_detected_indices():
+    service = CaptureService(camera_probe=lambda index: index in {0, 2})
+
+    assert service.available_cameras(max_index=4) == [0, 2]
+
+
+def test_available_cameras_falls_back_to_zero_when_no_camera_is_detected():
+    service = CaptureService(camera_probe=lambda index: False)
+
+    assert service.available_cameras(max_index=4) == [0]

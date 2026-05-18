@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+import cv2
+
 from capture.camera import CameraCapture
 from capture.image import ImageCapture
 from capture.screen import ScreenCapture
@@ -17,10 +19,12 @@ class CaptureService:
         image_factory: Callable[[], Any] = ImageCapture,
         screen_factory: Callable[[], Any] = ScreenCapture,
         camera_factory: Callable[[int], Any] = CameraCapture,
+        camera_probe: Callable[[int], bool] | None = None,
     ):
         self._image_factory = image_factory
         self._screen_factory = screen_factory
         self._camera_factory = camera_factory
+        self._camera_probe = camera_probe or self._probe_camera
         self._current_source: Any | None = None
         self.source_type = SourceType.NONE
 
@@ -44,6 +48,10 @@ class CaptureService:
     def start_camera(self, camera_index: int) -> Any:
         return self._start_live_source(self._camera_factory(camera_index), SourceType.CAMERA)
 
+    def available_cameras(self, max_index: int = 5) -> list[int]:
+        detected = [index for index in range(max_index) if self._camera_probe(index)]
+        return detected or [0]
+
     def read_frame(self) -> Any:
         if self._current_source is None:
             return None
@@ -62,3 +70,10 @@ class CaptureService:
         self._current_source = source
         self.source_type = source_type
         return source
+
+    def _probe_camera(self, index: int) -> bool:
+        capture = cv2.VideoCapture(index)
+        try:
+            return bool(capture.isOpened())
+        finally:
+            capture.release()

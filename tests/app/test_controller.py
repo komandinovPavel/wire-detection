@@ -10,12 +10,16 @@ class StubCaptureService:
         self.camera_index = None
         self.screen_started = False
         self.frame = object()
+        self.available = [0]
+        self.raise_on_camera = False
 
     def load_image(self, path):
         self.source_type = SourceType.IMAGE
         return self.frame
 
     def start_camera(self, index):
+        if self.raise_on_camera:
+            raise RuntimeError(f"Camera {index} failed")
         self.camera_index = index
         self.source_type = SourceType.CAMERA
 
@@ -26,6 +30,9 @@ class StubCaptureService:
     def stop(self):
         self.stopped = True
         self.source_type = SourceType.NONE
+
+    def available_cameras(self, max_index=5):
+        return self.available
 
 
 class StubRuntime:
@@ -46,6 +53,9 @@ class StubRuntime:
 
 
 class StubProcessor:
+    def __init__(self):
+        self.cleared = False
+
     def process(self, frame, settings):
         return FrameResult(
             source_frame=frame,
@@ -54,6 +64,12 @@ class StubProcessor:
             message=f"conf={settings.confidence}",
             stats=DefectStats(total=0, by_class={}),
         )
+
+    def clear_history(self):
+        self.cleared = True
+
+    def stats(self):
+        return DefectStats(total=0, by_class={})
 
 
 def make_controller():
@@ -120,6 +136,37 @@ def test_start_camera_delegates_to_runtime():
     assert capture.camera_index == 1
     assert runtime.is_running is True
     assert controller.get_status().status is RuntimeStatus.RUNNING
+
+
+def test_list_cameras_delegates_to_capture_service():
+    controller, capture, _ = make_controller()
+    capture.available = [0, 2]
+
+    assert controller.list_cameras() == [0, 2]
+
+
+def test_clear_defects_resets_processor_history_and_state_stats():
+    state = AppState(stats=DefectStats(total=5, by_class={"scratch": 5}))
+    capture = StubCaptureService()
+    processor = StubProcessor()
+    runtime = StubRuntime()
+    controller = AppController(capture, processor, runtime, state)
+
+    controller.clear_defects()
+
+    assert processor.cleared is True
+    assert controller.get_status().stats.total == 0
+
+
+def test_start_camera_failure_sets_error_status_without_starting_runtime():
+    controller, capture, runtime = make_controller()
+    capture.raise_on_camera = True
+
+    controller.start_camera(3)
+
+    assert runtime.is_running is False
+    assert controller.get_status().status is RuntimeStatus.ERROR
+    assert "Camera" in controller.get_status().message
 
 
 def test_stop_stops_runtime_and_capture():

@@ -45,19 +45,33 @@ class AppController:
 
     def start_camera(self, camera_index: int) -> None:
         self.stop()
-        self._capture_service.start_camera(camera_index)
-        self._state.source_type = self._capture_service.source_type
-        self._state.status = RuntimeStatus.RUNNING
-        self._state.message = f"Camera {camera_index} active"
-        self._runtime.start()
+        try:
+            self._capture_service.start_camera(camera_index)
+            self._state.source_type = self._capture_service.source_type
+            self._state.status = RuntimeStatus.RUNNING
+            self._state.message = f"Camera {camera_index} active"
+            self._state.last_error = None
+            self._runtime.start()
+        except Exception as exc:
+            self._state.source_type = self._capture_service.source_type
+            self._state.status = RuntimeStatus.ERROR
+            self._state.message = str(exc)
+            self._state.last_error = str(exc)
 
     def start_screen(self) -> None:
         self.stop()
-        self._capture_service.start_screen()
-        self._state.source_type = self._capture_service.source_type
-        self._state.status = RuntimeStatus.RUNNING
-        self._state.message = "Screen capture active"
-        self._runtime.start()
+        try:
+            self._capture_service.start_screen()
+            self._state.source_type = self._capture_service.source_type
+            self._state.status = RuntimeStatus.RUNNING
+            self._state.message = "Screen capture active"
+            self._state.last_error = None
+            self._runtime.start()
+        except Exception as exc:
+            self._state.source_type = self._capture_service.source_type
+            self._state.status = RuntimeStatus.ERROR
+            self._state.message = str(exc)
+            self._state.last_error = str(exc)
 
     def stop(self) -> None:
         self._runtime.stop()
@@ -72,6 +86,13 @@ class AppController:
             confidence=clamped,
             imgsz=self._state.settings.imgsz,
         )
+
+    def list_cameras(self, max_index: int = 5) -> list[int]:
+        return self._capture_service.available_cameras(max_index)
+
+    def clear_defects(self) -> None:
+        self._frame_processor.clear_history()
+        self._state.stats = self._frame_processor.stats()
 
     def poll_latest_frame(self) -> FrameResult | None:
         runtime_frame = self._runtime.poll_latest()
