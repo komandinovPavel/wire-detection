@@ -14,6 +14,7 @@ class AppState:
     message: str = "Ready"
     last_error: str | None = None
     stats: DefectStats = field(default_factory=DefectStats)
+    measurement_enabled: bool = False
 
     def snapshot(self) -> RuntimeSnapshot:
         return RuntimeSnapshot(
@@ -23,5 +24,6 @@ class AppState:
             message=self.message,
             settings=self.settings,
             stats=self.stats,
+            measurement_enabled=self.measurement_enabled,
             last_error=self.last_error,
         )

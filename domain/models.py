@@ -129,4 +129,5 @@ class RuntimeSnapshot:
     message: str
     settings: ProcessingSettings
     stats: DefectStats
+    measurement_enabled: bool = False
     last_error: str | None = None

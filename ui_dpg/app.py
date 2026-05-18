@@ -7,7 +7,6 @@ import dearpygui.dearpygui as dpg
 
 from app.factory import build_controller
 from core.config import Config
-from domain import AppMode
 from ui_dpg.views.calibration_window import CalibrationWindowView
 from ui_dpg.views.control_panel import ControlPanelView
 from ui_dpg.views.defects_panel import DefectsPanelView
@@ -45,7 +44,7 @@ class DearPyGuiApp:
             self._clear_defects,
             self.settings.show,
             self.calibration.show,
-            self._start_measurement_mode,
+            self._set_measurement_enabled,
         )
         self._last_rendered_result = None
 
@@ -114,18 +113,16 @@ class DearPyGuiApp:
         self.calibration.update_frame(overlay)
         self.calibration.update_result(result)
 
-    def _start_measurement_mode(self) -> None:
-        try:
-            frame = self.controller.start_measurement_mode()
-        except Exception:
-            return
-        self.viewport.update_frame(frame)
-        self._last_rendered_result = None
+    def _set_measurement_enabled(self, enabled: bool) -> None:
+        actual = self.controller.set_measurement_enabled(enabled)
+        if actual != enabled:
+            dpg.set_value(ControlPanelView.MEASURE_BUTTON, actual)
 
     def _handle_viewport_click(self, x: int, y: int) -> None:
-        if self.controller.get_status().mode is not AppMode.MEASURE:
+        if not self.controller.get_status().measurement_enabled:
             return
         try:
+            self.controller.start_measurement_mode()
             _, overlay = self.controller.measure_at(x)
         except Exception:
             return
@@ -134,11 +131,6 @@ class DearPyGuiApp:
     def _update(self) -> None:
         layout_changed = self._apply_layout()
         snapshot = self.controller.get_status()
-        if snapshot.mode is AppMode.MEASURE:
-            self.controls.update(snapshot)
-            self.settings.update(snapshot)
-            self.status.update(snapshot, None)
-            return
         result = self.controller.poll_latest_frame()
         if result is not None and result is not self._last_rendered_result:
             self.viewport.update_frame(result.display_frame)

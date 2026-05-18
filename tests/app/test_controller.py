@@ -293,7 +293,45 @@ def test_start_measurement_mode_freezes_latest_source_frame():
     frozen = controller.start_measurement_mode()
 
     assert frozen is frame
-    assert controller.get_status().mode is AppMode.MEASURE
+    assert controller.get_status().measurement_enabled is True
+    assert controller.get_status().mode is AppMode.DETECT
+
+
+def test_measurement_toggle_requires_calibration():
+    controller, _, _ = make_controller()
+
+    enabled = controller.set_measurement_enabled(True)
+
+    assert enabled is False
+    assert controller.get_status().measurement_enabled is False
+    assert controller.get_status().status is RuntimeStatus.ERROR
+    assert "Calibrate first" in controller.get_status().message
+
+
+def test_measurement_toggle_can_be_enabled_after_calibration_and_survives_source_switch():
+    controller, _, _ = make_controller()
+    controller.load_calibration_image("calibration.jpg")
+    controller.calibrate_at(42)
+
+    enabled = controller.set_measurement_enabled(True)
+    controller.start_screen()
+
+    assert enabled is True
+    assert controller.get_status().measurement_enabled is True
+    assert controller.get_status().mode is AppMode.DETECT
+    assert controller.get_status().source_type is SourceType.SCREEN
+
+
+def test_measurement_toggle_can_be_disabled():
+    controller, _, _ = make_controller()
+    controller.load_calibration_image("calibration.jpg")
+    controller.calibrate_at(42)
+    controller.set_measurement_enabled(True)
+
+    enabled = controller.set_measurement_enabled(False)
+
+    assert enabled is False
+    assert controller.get_status().measurement_enabled is False
 
 
 def test_measure_at_uses_frozen_measurement_frame():

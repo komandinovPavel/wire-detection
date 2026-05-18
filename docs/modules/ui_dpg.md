@@ -12,7 +12,7 @@ The `ui_dpg` layer contains the Dear PyGui interface.
 ## Current Structure
 
 - `app.py`: creates the DPG context, viewport, main window, and update loop.
-- `views/control_panel.py`: source buttons, camera button, camera list combo, active-source styling, stop styling, settings action, clear action, and confidence slider.
+- `views/control_panel.py`: grouped Source, Inspection, and Tools controls; source buttons, camera list combo, small refresh, measurement toggle, settings action, clear action, and confidence slider.
 - `views/settings_window.py`: modal DPG settings window for runtime UI settings.
 - `views/calibration_window.py`: separate DPG window for calibration image loading, preview, and click-to-calibrate.
 - `views/viewport.py`: responsive frame display and texture recreation.
@@ -30,7 +30,7 @@ The `ui_dpg` layer contains the Dear PyGui interface.
 - `ControlPanelView.update()` highlights the selected source from `RuntimeSnapshot.source_type`.
 - `SettingsWindowView` is hidden until the user presses `Settings`; runtime tuning controls should live there instead of crowding the toolbar.
 - Defect rows are appended from `FrameResult.new_detections`, while the viewport still displays the fully annotated frame.
-- `Measure` freezes the current clean frame in the main viewport; subsequent clicks draw measurement overlays instead of resuming detection.
+- `Measure mode` is a toggle in the Inspection group. It is disabled until calibration exists, and source buttons continue to work while it is enabled.
 
 ## Dependencies
 

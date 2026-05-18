@@ -91,9 +91,11 @@ def test_runtime_snapshot_exposes_status_and_source():
         message="Camera active",
         settings=ProcessingSettings(confidence=0.45),
         stats=DefectStats(total=2, by_class={"defect": 2}),
+        measurement_enabled=True,
     )
 
     assert snapshot.status is RuntimeStatus.RUNNING
     assert snapshot.source_type is SourceType.CAMERA
+    assert snapshot.measurement_enabled is True
     assert snapshot.settings.confidence == 0.45
     assert snapshot.stats.by_class["defect"] == 2

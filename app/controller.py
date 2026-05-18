@@ -144,8 +144,30 @@ class AppController:
 
     def reset_calibration(self) -> None:
         self._calibration_service.reset()
+        self._state.measurement_enabled = False
         self._state.mode = AppMode.DETECT
         self._state.message = "Calibration reset"
+
+    def set_measurement_enabled(self, enabled: bool) -> bool:
+        if not enabled:
+            self._state.measurement_enabled = False
+            self._state.mode = AppMode.DETECT
+            self._state.status = RuntimeStatus.READY
+            self._state.message = "Measurement mode disabled"
+            self._state.last_error = None
+            return False
+        if not self._calibration_service.is_calibrated():
+            self._state.measurement_enabled = False
+            self._state.status = RuntimeStatus.ERROR
+            self._state.message = "Calibrate first"
+            self._state.last_error = "Calibrate first"
+            return False
+        self._state.measurement_enabled = True
+        self._state.mode = AppMode.DETECT
+        self._state.status = RuntimeStatus.READY
+        self._state.message = "Measure mode enabled: click on the wire"
+        self._state.last_error = None
+        return True
 
     def start_measurement_mode(self) -> Any:
         if not self._calibration_service.is_calibrated():
@@ -163,7 +185,8 @@ class AppController:
         self._runtime.stop()
         self._capture_service.stop()
         self._state.source_type = self._capture_service.source_type
-        self._state.mode = AppMode.MEASURE
+        self._state.measurement_enabled = True
+        self._state.mode = AppMode.DETECT
         self._state.status = RuntimeStatus.READY
         self._state.message = "Measurement mode: click on the wire"
         return self._measurement_frame
@@ -173,7 +196,7 @@ class AppController:
             raise RuntimeError("No frame available for measurement")
         result = self._calibration_service.measure_at(self._measurement_frame, x)
         overlay = self._measurement_overlay.render_measurement(self._measurement_frame, result)
-        self._state.mode = AppMode.MEASURE
+        self._state.mode = AppMode.DETECT
         self._state.status = RuntimeStatus.READY
         self._state.message = f"Measured: {result.diameter_mm:.3f} mm | Deviation: {result.deviation_mm:+.3f} mm"
         self._state.last_error = None

@@ -27,6 +27,7 @@ The `app` layer contains application use-case orchestration. It sits between UI 
 - `AppController.set_deduplication_enabled()` updates `ProcessingSettings` while preserving confidence and image size.
 - `AppController.load_calibration_image()` loads a clean calibration frame without running YOLO.
 - `AppController.start_measurement_mode()` freezes the latest clean frame so clicks measure the image the user sees.
+- `AppController.set_measurement_enabled()` owns the measurement toggle state; source switching does not disable it after calibration.
 
 ## Dependencies
 
