@@ -1,6 +1,7 @@
 import numpy as np
 
 from domain import Detection, DetectionResult, ProcessingSettings, RuntimeStatus
+from services.defect_event_filter import DefectEventFilter
 from services.defect_history import DefectHistory
 from services.frame_processor import FrameProcessor
 
@@ -24,6 +25,14 @@ class FailingDetectionService:
         )
 
 
+class StableDetectionService:
+    def detect(self, frame, settings):
+        return DetectionResult(
+            annotated_frame=frame,
+            detections=[Detection("scratch", 0.9, (0, 0, 10, 10), timestamp=10.0)],
+        )
+
+
 def test_process_success_returns_frame_result_and_updates_history():
     frame = np.zeros((3, 3, 3), dtype=np.uint8)
     history = DefectHistory()
@@ -38,6 +47,22 @@ def test_process_success_returns_frame_result_and_updates_history():
     assert result.stats.total == 1
     assert history.stats().total == 1
     assert result.processing_ms >= 0
+
+
+def test_process_preserves_current_detections_but_counts_only_new_events():
+    frame = np.zeros((3, 3, 3), dtype=np.uint8)
+    history = DefectHistory()
+    event_filter = DefectEventFilter(iou_threshold=0.4, window_seconds=2.0)
+    processor = FrameProcessor(StableDetectionService(), history, event_filter)
+
+    first = processor.process(frame, ProcessingSettings())
+    second = processor.process(frame, ProcessingSettings())
+
+    assert len(first.detections) == 1
+    assert len(first.new_detections) == 1
+    assert len(second.detections) == 1
+    assert second.new_detections == []
+    assert second.stats.total == 1
 
 
 def test_process_failure_returns_error_result_without_history_increment():
