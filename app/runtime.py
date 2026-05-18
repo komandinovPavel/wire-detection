@@ -11,11 +11,19 @@ from domain import FrameResult, RuntimeStatus
 class ProcessingRuntime:
     """Background runtime for live sources, with a testable single-iteration method."""
 
-    def __init__(self, capture_service: Any, frame_processor: Any, state: AppState, interval_s: float = 0.01):
+    def __init__(
+        self,
+        capture_service: Any,
+        frame_processor: Any,
+        state: AppState,
+        interval_s: float = 0.01,
+        stop_timeout_s: float = 1.0,
+    ):
         self._capture_service = capture_service
         self._frame_processor = frame_processor
         self._state = state
         self._interval_s = interval_s
+        self._stop_timeout_s = stop_timeout_s
         self._thread: threading.Thread | None = None
         self._stop_event = threading.Event()
         self._lock = threading.Lock()
@@ -33,9 +41,16 @@ class ProcessingRuntime:
 
     def stop(self, join: bool = True) -> None:
         self._stop_event.set()
-        if join and self._thread is not None and self._thread.is_alive():
-            self._thread.join(timeout=1.0)
-        self._thread = None
+        if self._thread is None:
+            return
+
+        if join and self._thread.is_alive():
+            self._thread.join(timeout=self._stop_timeout_s)
+            if self._thread.is_alive():
+                raise RuntimeError("Processing runtime did not stop within timeout")
+
+        if not self._thread.is_alive():
+            self._thread = None
 
     def run_once(self) -> bool:
         frame = self._capture_service.read_frame()

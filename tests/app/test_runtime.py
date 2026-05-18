@@ -87,3 +87,46 @@ def test_start_waits_for_previous_loop_before_clearing_stop_event():
 
     assert not restart.is_alive()
     runtime.stop()
+
+
+class StillAliveThread:
+    def __init__(self):
+        self.join_timeout = None
+
+    def is_alive(self):
+        return True
+
+    def join(self, timeout=None):
+        self.join_timeout = timeout
+
+
+def test_stop_keeps_live_thread_reference_when_join_times_out():
+    runtime = ProcessingRuntime(OneFrameCapture(), RecordingProcessor(), AppState(), stop_timeout_s=0.01)
+    thread = StillAliveThread()
+    runtime._thread = thread
+
+    try:
+        runtime.stop(join=True)
+    except RuntimeError as exc:
+        assert str(exc) == "Processing runtime did not stop within timeout"
+    else:
+        raise AssertionError("Expected stop() to raise when runtime thread stays alive")
+
+    assert runtime._thread is thread
+    assert thread.join_timeout == 0.01
+
+
+def test_start_does_not_launch_second_loop_when_previous_thread_cannot_stop():
+    runtime = ProcessingRuntime(OneFrameCapture(), RecordingProcessor(), AppState(), stop_timeout_s=0.01)
+    thread = StillAliveThread()
+    runtime._thread = thread
+
+    try:
+        runtime.start()
+    except RuntimeError as exc:
+        assert str(exc) == "Processing runtime did not stop within timeout"
+    else:
+        raise AssertionError("Expected start() to propagate stop timeout")
+
+    assert runtime._thread is thread
+    assert runtime._stop_event.is_set()
