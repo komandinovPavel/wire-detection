@@ -85,3 +85,19 @@ Check:
 3. Run tests and compile check.
 4. Do a quick review of `ui_dpg/app.py`, `ui_dpg/views/viewport.py`, and `ui_dpg/views/defects_panel.py`.
 5. Decide whether to merge `feat/dpg-migration` into `dev`.
+
+## Next Usability Plan
+
+Created:
+
+- `docs/superpowers/specs/2026-05-19-dpg-usability-and-defect-events-design.md`
+- `docs/superpowers/plans/2026-05-19-dpg-usability-and-defect-events.md`
+
+Planned work:
+
+- larger source controls;
+- active source and red stop styling;
+- status source and frame-time display;
+- camera combo plus refresh;
+- deduplicated defect events using class + bbox IoU + time window;
+- clear defect history action.
