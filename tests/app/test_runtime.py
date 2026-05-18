@@ -1,3 +1,5 @@
+import threading
+
 import numpy as np
 
 from app.runtime import ProcessingRuntime
@@ -54,3 +56,34 @@ def test_run_once_returns_false_when_no_frame_available():
 
     assert processed is False
     assert runtime.poll_latest() is None
+
+
+class BlockingCapture:
+    def __init__(self):
+        self.first_read_started = threading.Event()
+        self.release_first_read = threading.Event()
+        self.read_calls = 0
+
+    def read_frame(self):
+        self.read_calls += 1
+        if self.read_calls == 1:
+            self.first_read_started.set()
+            self.release_first_read.wait(timeout=1.0)
+        return None
+
+
+def test_start_waits_for_previous_loop_before_clearing_stop_event():
+    capture = BlockingCapture()
+    runtime = ProcessingRuntime(capture, RecordingProcessor(), AppState(), interval_s=0.001)
+    runtime.start()
+    assert capture.first_read_started.wait(timeout=1.0)
+
+    restart = threading.Thread(target=runtime.start)
+    restart.start()
+    assert restart.is_alive()
+
+    capture.release_first_read.set()
+    restart.join(timeout=1.0)
+
+    assert not restart.is_alive()
+    runtime.stop()

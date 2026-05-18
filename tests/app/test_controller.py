@@ -1,6 +1,6 @@
 from app.controller import AppController
 from app.state import AppState
-from domain import DefectStats, FrameResult, RuntimeStatus, SourceType
+from domain import DefectStats, FrameResult, ProcessingSettings, RuntimeStatus, SourceType
 
 
 class StubCaptureService:
@@ -71,6 +71,34 @@ def test_set_confidence_updates_state():
     controller.set_confidence(0.65)
 
     assert controller.get_status().settings.confidence == 0.65
+
+
+def test_set_confidence_clamps_below_zero():
+    controller, _, _ = make_controller()
+
+    controller.set_confidence(-0.25)
+
+    assert controller.get_status().settings.confidence == 0.0
+
+
+def test_set_confidence_clamps_above_one():
+    controller, _, _ = make_controller()
+
+    controller.set_confidence(1.25)
+
+    assert controller.get_status().settings.confidence == 1.0
+
+
+def test_set_confidence_preserves_current_imgsz():
+    state = AppState(settings=ProcessingSettings(confidence=0.3, imgsz=320))
+    capture = StubCaptureService()
+    processor = StubProcessor()
+    runtime = StubRuntime()
+    controller = AppController(capture, processor, runtime, state)
+
+    controller.set_confidence(0.8)
+
+    assert controller.get_status().settings.imgsz == 320
 
 
 def test_load_image_processes_single_frame_and_updates_snapshot():

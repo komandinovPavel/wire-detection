@@ -26,7 +26,7 @@ class ProcessingRuntime:
         return self._thread is not None and self._thread.is_alive()
 
     def start(self) -> None:
-        self.stop(join=False)
+        self.stop(join=True)
         self._stop_event.clear()
         self._thread = threading.Thread(target=self._loop, daemon=True)
         self._thread.start()

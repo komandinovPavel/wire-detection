@@ -15,12 +15,12 @@ class AppController:
         capture_service: Any,
         frame_processor: Any,
         runtime: ProcessingRuntime,
-        state: AppState | None = None,
+        state: AppState,
     ):
         self._capture_service = capture_service
         self._frame_processor = frame_processor
         self._runtime = runtime
-        self._state = state or AppState()
+        self._state = state
         self._latest_frame: FrameResult | None = None
 
     def load_image(self, path: str) -> FrameResult:
