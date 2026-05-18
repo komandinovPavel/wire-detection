@@ -36,7 +36,7 @@ class DearPyGuiApp:
             self.controller.start_screen,
             self.controller.start_camera,
             self.controller.stop,
-            self.controller.clear_defects,
+            self._clear_defects,
         )
         self._last_rendered_result = None
 
@@ -75,6 +75,10 @@ class DearPyGuiApp:
         root.destroy()
         if path:
             self.controller.load_image(path)
+
+    def _clear_defects(self) -> None:
+        self.controller.clear_defects()
+        self.defects.clear()
 
     def _update(self) -> None:
         layout_changed = self._apply_layout()

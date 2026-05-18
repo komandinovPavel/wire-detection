@@ -27,6 +27,12 @@ class DefectsPanelView:
             num_items=max(6, min(30, height // 24)),
         )
 
+    def clear(self) -> None:
+        self._rows.clear()
+        dpg.set_value("defects_total", "Total: 0")
+        dpg.set_value("defects_by_class", "By Class: none")
+        dpg.configure_item("defects_list", items=[])
+
     def update(self, detections, stats) -> None:
         timestamp = datetime.now().strftime("%H:%M:%S")
         for detection in detections:
