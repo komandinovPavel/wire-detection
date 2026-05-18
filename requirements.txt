@@ -18,7 +18,10 @@ numpy>=1.24.0
 mss>=9.0.0
 
 # GUI
-# Tkinter comes with Python, no need to install
+dearpygui==2.3.1
 
 # Optional: for better performance
 scipy>=1.11.0
+
+# Tests
+pytest==9.0.3
