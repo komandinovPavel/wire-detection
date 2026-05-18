@@ -115,3 +115,36 @@
 - `WireCalibrator.calculate_calibration()` по двум точкам почти не используется текущим UI; не принимать его за основной сценарий без проверки.
 - В проекте есть mojibake в русских строках/комментариях из-за кодировки, поэтому при правках UI-текстов стоит аккуратно проверить отображение.
 - `Config.MODEL_PATH` должен соответствовать реально существующему `best.pt`; README и train.py местами называют разные директории результатов.
+## Dear PyGui Migration Snapshot
+
+The project now has a backend-first DPG path in addition to the legacy Tkinter UI.
+
+New layers:
+
+- `domain/`: dataclasses and enums shared by app, services, and UI.
+- `services/`: capture switching, detection adapter, frame processing, defect history, and overlay home.
+- `app/`: thin `AppController`, shared `AppState`, background `ProcessingRuntime`, and `build_controller()`.
+- `ui_dpg/`: Dear PyGui shell, responsive frame viewport, control panel, defect panel, and status bar.
+
+DPG entry point:
+
+```powershell
+python main_dpg.py
+```
+
+Current DPG MVP:
+
+- load image;
+- screen capture;
+- camera 0 capture;
+- YOLO inference;
+- confidence slider;
+- responsive frame scaling on window/fullscreen resize;
+- defect history and class statistics;
+- status display.
+
+Still pending for DPG:
+
+- calibration workflow;
+- measurement workflow;
+- detailed visual polish after manual smoke testing.

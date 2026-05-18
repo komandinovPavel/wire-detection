@@ -19,6 +19,8 @@ class ViewportView:
         self.container_tag = container_tag
         self._width = 640
         self._height = 360
+        self._max_width = 960
+        self._max_height = 540
 
     def build(self) -> None:
         with dpg.texture_registry(tag=self.texture_registry_tag):
@@ -26,11 +28,19 @@ class ViewportView:
         with dpg.group(tag=self.container_tag):
             dpg.add_image(self.texture_tag, tag=self.image_tag)
 
+    def set_bounds(self, max_width: int, max_height: int) -> bool:
+        max_width = max(1, int(max_width))
+        max_height = max(1, int(max_height))
+        changed = max_width != self._max_width or max_height != self._max_height
+        self._max_width = max_width
+        self._max_height = max_height
+        return changed
+
     def update_frame(self, frame) -> None:
         if frame is None:
             return
         height, width = frame.shape[:2]
-        new_width, new_height = fit_size(width, height, 960, 540)
+        new_width, new_height = fit_size(width, height, self._max_width, self._max_height)
         resized = resize_for_texture(frame, new_width, new_height)
         data = bgr_frame_to_rgba_float(resized)
 

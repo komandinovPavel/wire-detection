@@ -10,13 +10,13 @@ The `services` layer contains backend use cases and reusable application logic.
 - Track defect history and statistics.
 - Provide overlay-related operations for future calibration and measurement UI.
 
-## Planned Classes
+## Current Classes
 
 - `DetectionService`: typed adapter around `core.model.DefectDetector`.
 - `CaptureService`: creates, switches, and stops image/screen/camera sources.
 - `FrameProcessor`: processes one frame with current settings.
 - `DefectHistory`: stores recent detections and class counts.
-- `OverlayService`: owns visual overlay generation later.
+- `OverlayService`: pass-through overlay home for later calibration and measurement drawing.
 
 ## Dependencies
 

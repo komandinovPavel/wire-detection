@@ -9,12 +9,18 @@ The `app` layer contains application use-case orchestration. It sits between UI 
 - Provide snapshots/results for UI polling.
 - Keep UI code away from YOLO, OpenCV capture sources, and defect-counting internals.
 
-## Planned Classes
+## Current Classes
 
 - `AppController`: command facade for UI.
 - `ProcessingRuntime`: background loop for camera and screen processing.
 - `AppState`: current settings, selected source, mode, and status.
-- `events` / DTOs: simple event or snapshot objects for UI consumption.
+- `build_controller()`: composition root that wires config, detector, services, runtime, and controller.
+
+## Runtime Notes
+
+- `ProcessingRuntime.run_once()` is the testable one-frame path.
+- `ProcessingRuntime.start()` stops the old worker before starting a new one.
+- If a previous worker does not stop inside its timeout, runtime raises `RuntimeError` instead of hiding a still-live thread.
 
 ## Dependencies
 

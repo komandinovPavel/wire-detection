@@ -328,3 +328,30 @@ python main.py
 ```
 
 Удачной детекции дефектов! 🔍✨
+
+## Dear PyGui MVP
+
+The new DPG entry point is:
+
+```powershell
+python main_dpg.py
+```
+
+Current DPG scope:
+
+- load image;
+- screen capture;
+- camera 0 capture;
+- YOLO inference;
+- confidence slider;
+- responsive frame viewport;
+- defect history and class statistics;
+- status display.
+
+The legacy Tkinter entry point is still:
+
+```powershell
+python main.py
+```
+
+Calibration and measurement are still handled by the existing Tkinter workflow until the next migration phase.
