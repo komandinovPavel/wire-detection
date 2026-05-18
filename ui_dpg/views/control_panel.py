@@ -9,6 +9,7 @@ class ControlPanelView:
     CAMERA_BUTTON = "source_camera_button"
     STOP_BUTTON = "stop_button"
     CLEAR_BUTTON = "clear_defects_button"
+    SETTINGS_BUTTON = "settings_button"
     CAMERA_COMBO = "camera_combo"
     NORMAL_THEME = "normal_button_theme"
     ACTIVE_SOURCE_THEME = "active_source_theme"
@@ -22,6 +23,7 @@ class ControlPanelView:
         on_start_camera,
         on_stop,
         on_clear_defects,
+        on_open_settings,
     ):
         self._controller = controller
         self._on_load_image = on_load_image
@@ -29,17 +31,20 @@ class ControlPanelView:
         self._on_start_camera = on_start_camera
         self._on_stop = on_stop
         self._on_clear_defects = on_clear_defects
+        self._on_open_settings = on_open_settings
 
     def build(self) -> None:
         self._build_themes()
         with dpg.group(horizontal=True):
             dpg.add_button(tag=self.IMAGE_BUTTON, label="Image", width=112, height=36, callback=lambda: self._on_load_image())
             dpg.add_button(tag=self.SCREEN_BUTTON, label="Screen", width=112, height=36, callback=lambda: self._on_start_screen())
-            dpg.add_combo(tag=self.CAMERA_COMBO, items=["0"], default_value="0", width=72)
             dpg.add_button(tag=self.CAMERA_BUTTON, label="Camera", width=112, height=36, callback=lambda: self._start_selected_camera())
+            dpg.add_text("Camera list")
+            dpg.add_combo(tag=self.CAMERA_COMBO, items=["0"], default_value="0", width=72)
             dpg.add_button(label="Refresh", width=90, height=36, callback=lambda: self.refresh_cameras())
             dpg.add_button(tag=self.STOP_BUTTON, label="Stop", width=100, height=36, callback=lambda: self._on_stop())
             dpg.add_button(tag=self.CLEAR_BUTTON, label="Clear", width=100, height=36, callback=lambda: self._on_clear_defects())
+            dpg.add_button(tag=self.SETTINGS_BUTTON, label="Settings", width=112, height=36, callback=lambda: self._on_open_settings())
             dpg.add_text("Confidence")
             dpg.add_slider_float(
                 tag="confidence_slider",

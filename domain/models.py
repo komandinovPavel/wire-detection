@@ -32,6 +32,7 @@ class DetectionResult:
 class ProcessingSettings:
     confidence: float = 0.3
     imgsz: int = 640
+    deduplicate_defects: bool = True
 
 
 @dataclass(frozen=True)

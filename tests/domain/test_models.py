@@ -15,6 +15,7 @@ def test_processing_settings_defaults_match_existing_config_values():
 
     assert settings.confidence == 0.3
     assert settings.imgsz == 640
+    assert settings.deduplicate_defects is True
 
 
 def test_detection_bbox_is_normalized_to_tuple():

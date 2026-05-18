@@ -85,6 +85,14 @@ class AppController:
         self._state.settings = ProcessingSettings(
             confidence=clamped,
             imgsz=self._state.settings.imgsz,
+            deduplicate_defects=self._state.settings.deduplicate_defects,
+        )
+
+    def set_deduplication_enabled(self, enabled: bool) -> None:
+        self._state.settings = ProcessingSettings(
+            confidence=self._state.settings.confidence,
+            imgsz=self._state.settings.imgsz,
+            deduplicate_defects=bool(enabled),
         )
 
     def list_cameras(self, max_index: int = 5) -> list[int]:

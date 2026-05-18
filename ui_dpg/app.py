@@ -9,6 +9,7 @@ from app.factory import build_controller
 from core.config import Config
 from ui_dpg.views.control_panel import ControlPanelView
 from ui_dpg.views.defects_panel import DefectsPanelView
+from ui_dpg.views.settings_window import SettingsWindowView
 from ui_dpg.views.status_bar import StatusBarView
 from ui_dpg.views.viewport import ViewportView
 
@@ -30,6 +31,7 @@ class DearPyGuiApp:
         self.viewport = ViewportView()
         self.defects = DefectsPanelView()
         self.status = StatusBarView()
+        self.settings = SettingsWindowView(self.controller)
         self.controls = ControlPanelView(
             self.controller,
             self._load_image,
@@ -37,6 +39,7 @@ class DearPyGuiApp:
             self.controller.start_camera,
             self.controller.stop,
             self._clear_defects,
+            self.settings.show,
         )
         self._last_rendered_result = None
 
@@ -64,6 +67,7 @@ class DearPyGuiApp:
                 with dpg.child_window(tag=self.DEFECTS_PANEL_TAG, width=self.DEFECTS_PANEL_WIDTH, height=590, border=True):
                     self.defects.build()
             self.status.build()
+            self.settings.build()
 
     def _load_image(self) -> None:
         root = tk.Tk()
@@ -91,6 +95,7 @@ class DearPyGuiApp:
             self.viewport.update_frame(result.display_frame)
         snapshot = self.controller.get_status()
         self.controls.update(snapshot)
+        self.settings.update(snapshot)
         self.status.update(snapshot, result)
 
     def _apply_layout(self) -> bool:

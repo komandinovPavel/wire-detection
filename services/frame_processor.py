@@ -46,7 +46,10 @@ class FrameProcessor:
                 processing_ms=elapsed_ms,
             )
 
-        new_detections = self._event_filter.filter_new(detection_result.detections)
+        if settings.deduplicate_defects:
+            new_detections = self._event_filter.filter_new(detection_result.detections)
+        else:
+            new_detections = detection_result.detections
         self._history.add(new_detections)
         return FrameResult(
             source_frame=frame,

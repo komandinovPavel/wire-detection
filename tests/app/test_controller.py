@@ -117,6 +117,32 @@ def test_set_confidence_preserves_current_imgsz():
     assert controller.get_status().settings.imgsz == 320
 
 
+def test_set_confidence_preserves_deduplication_setting():
+    state = AppState(settings=ProcessingSettings(confidence=0.3, imgsz=320, deduplicate_defects=False))
+    capture = StubCaptureService()
+    processor = StubProcessor()
+    runtime = StubRuntime()
+    controller = AppController(capture, processor, runtime, state)
+
+    controller.set_confidence(0.8)
+
+    assert controller.get_status().settings.deduplicate_defects is False
+
+
+def test_set_deduplication_enabled_updates_state_and_preserves_other_settings():
+    state = AppState(settings=ProcessingSettings(confidence=0.42, imgsz=320))
+    capture = StubCaptureService()
+    processor = StubProcessor()
+    runtime = StubRuntime()
+    controller = AppController(capture, processor, runtime, state)
+
+    controller.set_deduplication_enabled(False)
+
+    assert controller.get_status().settings.deduplicate_defects is False
+    assert controller.get_status().settings.confidence == 0.42
+    assert controller.get_status().settings.imgsz == 320
+
+
 def test_load_image_processes_single_frame_and_updates_snapshot():
     controller, capture, _ = make_controller()
 

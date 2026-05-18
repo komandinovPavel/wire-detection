@@ -65,6 +65,21 @@ def test_process_preserves_current_detections_but_counts_only_new_events():
     assert second.stats.total == 1
 
 
+def test_process_counts_every_detection_when_deduplication_is_disabled():
+    frame = np.zeros((3, 3, 3), dtype=np.uint8)
+    history = DefectHistory()
+    event_filter = DefectEventFilter(iou_threshold=0.4, window_seconds=2.0)
+    processor = FrameProcessor(StableDetectionService(), history, event_filter)
+    settings = ProcessingSettings(deduplicate_defects=False)
+
+    first = processor.process(frame, settings)
+    second = processor.process(frame, settings)
+
+    assert len(first.new_detections) == 1
+    assert len(second.new_detections) == 1
+    assert second.stats.total == 2
+
+
 def test_process_failure_returns_error_result_without_history_increment():
     frame = np.zeros((3, 3, 3), dtype=np.uint8)
     history = DefectHistory()
