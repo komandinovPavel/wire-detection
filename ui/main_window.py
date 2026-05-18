@@ -297,47 +297,6 @@ class MainWindow:
             self.update_status(f"❌ Calibration failed: {e}")
             self.calibration_mode = False
             self.control_panel.set_active_mode(None)
-            
-    # def _do_calibration(self, orig_x: int):
-    #     try:
-    #         diameter_px, top_y, bottom_y = self.wire_analyzer.measure_diameter_at_x(
-    #             self.calibration_image, orig_x
-    #         )
-
-    #         if diameter_px < 2:
-    #             self.update_status("❌ Could not detect wire edges, try another spot")
-    #             return
-
-    #         px_per_mm = diameter_px / self.config.NOMINAL_DIAMETER_MM
-    #         self.calibrator.pixels_per_mm = px_per_mm
-
-    #         # Измеряем по всей картинке через эталонный масштаб
-    #         mean_diameter_px, _ = self.wire_analyzer.measure(self.calibration_image)
-    #         diameter_mm = mean_diameter_px / px_per_mm
-
-    #         vis = self._draw_calibration_result(
-    #             self.calibration_image, orig_x, top_y, bottom_y,
-    #             diameter_px, diameter_mm, px_per_mm
-    #         )
-    #         self.canvas.update_frame(vis)
-
-    #         deviation = diameter_mm - self.config.NOMINAL_DIAMETER_MM
-    #         self.calibration_mode = False
-    #         self.measurement_mode = True
-    #         self.control_panel.set_calibration_state("measuring")
-
-    #         self.update_status(
-    #             f"✅ Calibrated | Scale: {px_per_mm:.3f} px/mm | "
-    #             f"Measured: {diameter_mm:.3f} mm | "
-    #             f"Deviation: {deviation:+.3f} mm | "
-    #             f"Click anywhere on wire to measure"
-    #         )
-
-    #     except Exception as e:
-    #         self.update_status(f"❌ Calibration failed: {e}")
-    #         self.calibration_mode = False
-    #         self.control_panel.set_calibration_state("idle")
-
 
     def _do_measurement(self, orig_x: int):
         if not self.calibrator.pixels_per_mm:
