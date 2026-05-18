@@ -7,11 +7,12 @@ The `app` layer contains application use-case orchestration. It sits between UI 
 - Expose a thin `AppController` API for UI commands.
 - Manage runtime state and background processing.
 - Provide snapshots/results for UI polling.
+- Provide UI-safe commands for camera discovery and defect history clearing.
 - Keep UI code away from YOLO, OpenCV capture sources, and defect-counting internals.
 
 ## Current Classes
 
-- `AppController`: command facade for UI.
+- `AppController`: command facade for UI, including source start/stop, camera listing, settings, and defect clearing.
 - `ProcessingRuntime`: background loop for camera and screen processing.
 - `AppState`: current settings, selected source, mode, and status.
 - `build_controller()`: composition root that wires config, detector, services, runtime, and controller.
@@ -21,6 +22,7 @@ The `app` layer contains application use-case orchestration. It sits between UI 
 - `ProcessingRuntime.run_once()` is the testable one-frame path.
 - `ProcessingRuntime.start()` stops the old worker before starting a new one.
 - If a previous worker does not stop inside its timeout, runtime raises `RuntimeError` instead of hiding a still-live thread.
+- `AppController.start_camera()` and `start_screen()` convert source startup failures into `RuntimeStatus.ERROR` snapshots instead of letting UI callbacks crash.
 
 ## Dependencies
 

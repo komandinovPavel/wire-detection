@@ -12,10 +12,10 @@ The `ui_dpg` layer contains the Dear PyGui interface.
 ## Current Structure
 
 - `app.py`: creates the DPG context, viewport, main window, and update loop.
-- `views/control_panel.py`: source buttons and confidence slider.
+- `views/control_panel.py`: source buttons, camera combo, active-source styling, stop styling, clear action, and confidence slider.
 - `views/viewport.py`: responsive frame display and texture recreation.
 - `views/defects_panel.py`: defect table and class statistics.
-- `views/status_bar.py`: runtime status.
+- `views/status_bar.py`: runtime status, active source, and latest frame processing time.
 - `adapters/frame_texture.py`: converts `np.ndarray` frames into DPG texture data.
 
 ## Layout Notes
@@ -24,6 +24,8 @@ The `ui_dpg` layer contains the Dear PyGui interface.
 - The central viewport panel and the right defect panel are resized from viewport client size on every UI tick.
 - `ViewportView.set_bounds()` controls the maximum texture size, so images scale when the window is expanded or maximized.
 - `DefectsPanelView.resize()` keeps the defect list usable while the window size changes.
+- `ControlPanelView.update()` highlights the selected source from `RuntimeSnapshot.source_type`.
+- Defect rows are appended from `FrameResult.new_detections`, while the viewport still displays the fully annotated frame.
 
 ## Dependencies
 

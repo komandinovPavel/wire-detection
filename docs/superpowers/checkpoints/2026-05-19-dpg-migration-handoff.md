@@ -6,7 +6,7 @@ Date: 2026-05-19
 
 - Worktree: `E:\Code\Horev\wire-detection\.worktrees\dpg-migration`
 - Branch: `feat/dpg-migration`
-- Latest functional commit before docs: `ca6162f fix: stabilize dpg viewport updates`
+- Latest functional commit: `88a418d feat: add defect history clear action`
 
 ## Summary
 
@@ -15,9 +15,9 @@ The DPG migration now has a working backend/service layer and a first Dear PyGui
 Implemented layers:
 
 - `domain/`: typed contracts (`Detection`, `FrameResult`, `ProcessingSettings`, `RuntimeSnapshot`, enums).
-- `services/`: capture switching, detection adapter, frame processor, defect history, overlay home.
+- `services/`: capture switching/probing, detection adapter, frame processor, defect event filtering, defect history, overlay home.
 - `app/`: thin controller, app state, runtime loop, backend factory.
-- `ui_dpg/`: DPG app shell, control panel, responsive viewport, defect panel, status bar.
+- `ui_dpg/`: DPG app shell, larger source controls, camera combo, responsive viewport, defect panel, status/source bar.
 
 The legacy Tkinter app still exists at `python main.py`. The DPG app starts with `python main_dpg.py`.
 
@@ -30,6 +30,12 @@ The legacy Tkinter app still exists at `python main.py`. The DPG app starts with
   - viewport and defect panels resize from viewport client size;
   - frame texture scales to available viewport panel bounds;
   - defect list resizes with the right panel.
+- Added larger DPG source controls.
+- Added active source highlighting and red `Stop` styling.
+- Added `Source: ...` and frame processing time to the status bar.
+- Replaced hard-coded `Camera 0` button with a camera combo plus refresh.
+- Added `DefectEventFilter` so stable live detections are counted once by class + bbox IoU + time window.
+- Added `Clear` action for defect history and visible defect rows.
 
 ## Verification
 
@@ -42,7 +48,7 @@ Run from the worktree:
 Expected:
 
 ```text
-30 passed
+42 passed
 ```
 
 Compile check:
@@ -65,16 +71,20 @@ Check:
 - window opens;
 - maximize/fullscreen keeps right panel visible;
 - image scales up/down with the viewport;
-- `Load Image` works;
+- `Image` works;
+- active source button is green;
+- `Stop` is red;
+- status bar shows `Source: ...` and `Frame: ... ms`;
 - defect list does not duplicate the same static-image result every UI frame;
-- `Screen`, `Camera 0`, and `Stop` are usable;
+- camera combo is understandable and refreshable;
+- `Screen`, `Camera`, `Stop`, and `Clear` are usable;
+- repeated stable camera/screen detections do not inflate totals every frame;
 - closing the window stops runtime cleanly.
 
 ## Known Remaining Work
 
 - DPG calibration workflow is not migrated yet.
 - DPG measurement workflow is not migrated yet.
-- Camera selector is still hard-coded to Camera 0 in the MVP.
 - Task 7/8 did not receive full separate review gates due to session limit; do a quick code review before merge.
 - After manual testing, merge or cherry-pick `feat/dpg-migration` back to `dev`.
 
@@ -83,17 +93,17 @@ Check:
 1. Run manual smoke test and note UI/runtime issues.
 2. Fix any DPG issues found during manual test.
 3. Run tests and compile check.
-4. Do a quick review of `ui_dpg/app.py`, `ui_dpg/views/viewport.py`, and `ui_dpg/views/defects_panel.py`.
+4. Do a quick review of `ui_dpg/app.py`, `ui_dpg/views/control_panel.py`, and `services/defect_event_filter.py`.
 5. Decide whether to merge `feat/dpg-migration` into `dev`.
 
-## Next Usability Plan
+## Usability Plan
 
 Created:
 
 - `docs/superpowers/specs/2026-05-19-dpg-usability-and-defect-events-design.md`
 - `docs/superpowers/plans/2026-05-19-dpg-usability-and-defect-events.md`
 
-Planned work:
+Implemented work:
 
 - larger source controls;
 - active source and red stop styling;
