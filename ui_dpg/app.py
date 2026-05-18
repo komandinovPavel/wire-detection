@@ -20,6 +20,7 @@ class DearPyGuiApp:
         self.viewport = ViewportView()
         self.defects = DefectsPanelView()
         self.status = StatusBarView()
+        self._last_rendered_result = None
 
     def run(self) -> None:
         dpg.create_context()
@@ -64,9 +65,10 @@ class DearPyGuiApp:
 
     def _update(self) -> None:
         result = self.controller.poll_latest_frame()
-        if result is not None:
+        if result is not None and result is not self._last_rendered_result:
             self.viewport.update_frame(result.display_frame)
             self.defects.update(result.detections, result.stats)
+            self._last_rendered_result = result
         self.status.update(self.controller.get_status())
 
 
