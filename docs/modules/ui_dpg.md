@@ -17,9 +17,10 @@ The `ui_dpg` layer contains the Dear PyGui interface.
 - `views/calibration_window.py`: separate DPG window for calibration image loading, preview, and click-to-calibrate.
 - `views/viewport.py`: responsive frame display and texture recreation.
 - `views/defects_panel.py`: defect table and class statistics.
-- `views/status_bar.py`: badge-style runtime status, active source, mode, YOLO state, measurement state, and latest frame processing time/FPS.
+- `views/status_bar.py`: badge-style runtime status, active source, mode, YOLO state, measurement state, live FPS, and a compact FPS sparkline.
 - `adapters/frame_texture.py`: converts `np.ndarray` frames into DPG texture data.
 - `adapters/status_metrics.py`: formats source-aware frame timing/FPS labels and source theme keys.
+- `adapters/fps_tracker.py`: tracks live-source FPS from distinct frame arrival intervals and keeps a short history window for the footer sparkline.
 
 ## Layout Notes
 
@@ -33,7 +34,8 @@ The `ui_dpg` layer contains the Dear PyGui interface.
 - `Clear` and `Calibrate` are right-aligned actions; `Settings` is isolated as a compact muted utility control outside the action group.
 - The footer includes an explicit bottom safe-area spacer so status badges do not sit flush against the Windows taskbar in fullscreen.
 - The source status badge uses source-specific colors; `none` is treated as an error/empty state while active sources remain labeled in text.
-- FPS is derived from `FrameResult.processing_ms` only for live sources (`camera` and `screen`), so still images keep a plain millisecond label.
+- FPS is derived from the interval between distinct live `FrameResult` objects, not from `FrameResult.processing_ms`; this keeps FPS stable when YOLO is disabled and processing time is near zero.
+- The FPS sparkline is a small, label-free telemetry graph with a subtle fill; it appears only for live sources after enough samples exist.
 - Defect rows are appended from `FrameResult.new_detections`, while the viewport still displays the fully annotated frame.
 - When YOLO is disabled in settings, live/image sources still render frames but detection rows and counters do not update.
 - `Measure mode` is a toggle in the Inspection group. It is disabled until calibration exists, and source buttons continue to work while it is enabled.
