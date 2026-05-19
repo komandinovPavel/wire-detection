@@ -20,10 +20,12 @@ class DearPyGuiApp:
     CONTENT_GROUP_TAG = "content_group"
     VIEWPORT_PANEL_TAG = "viewport_panel"
     DEFECTS_PANEL_TAG = "defects_panel"
+    BOTTOM_SAFE_PADDING_TAG = "bottom_safe_padding"
     DEFECTS_PANEL_WIDTH = 340
     MIN_DEFECTS_PANEL_WIDTH = 280
     MIN_VIEWPORT_WIDTH = 360
-    CONTROL_STATUS_RESERVED_HEIGHT = 150
+    CONTROL_STATUS_RESERVED_HEIGHT = 184
+    BOTTOM_SAFE_PADDING = 32
     PANEL_PADDING = 24
 
     def __init__(self, config: Config | None = None):
@@ -72,6 +74,7 @@ class DearPyGuiApp:
                 with dpg.child_window(tag=self.DEFECTS_PANEL_TAG, width=self.DEFECTS_PANEL_WIDTH, height=590, border=True):
                     self.defects.build()
             self.status.build()
+            dpg.add_spacer(tag=self.BOTTOM_SAFE_PADDING_TAG, height=self.BOTTOM_SAFE_PADDING)
         self.settings.build()
         self.calibration.build()
 

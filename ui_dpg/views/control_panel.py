@@ -66,11 +66,7 @@ class ControlPanelView:
             dpg.add_spacer(width=12)
             dpg.add_spacer(tag=self.RIGHT_ACTIONS_SPACER, width=20)
             with dpg.group():
-                dpg.add_text("Actions")
-                with dpg.group(horizontal=True):
-                    dpg.add_button(tag=self.CLEAR_BUTTON, label="Clear", width=100, height=34, callback=lambda: self._on_clear_defects())
-                    dpg.add_button(tag=self.SETTINGS_BUTTON, label="Settings", width=112, height=34, callback=lambda: self._on_open_settings())
-                dpg.add_button(tag=self.CALIBRATE_BUTTON, label="Calibrate", width=216, height=34, callback=lambda: self._on_open_calibration())
+                dpg.add_text("Detection")
                 with dpg.group(horizontal=True):
                     dpg.add_text("Confidence")
                     dpg.add_slider_float(
@@ -81,6 +77,16 @@ class ControlPanelView:
                         width=160,
                         callback=lambda sender, value: self._controller.set_confidence(value),
                     )
+            dpg.add_spacer(width=12)
+            with dpg.group():
+                dpg.add_text("Actions")
+                with dpg.group(horizontal=True):
+                    dpg.add_button(tag=self.CLEAR_BUTTON, label="Clear", width=100, height=34, callback=lambda: self._on_clear_defects())
+                    dpg.add_button(tag=self.CALIBRATE_BUTTON, label="Calibrate", width=112, height=34, callback=lambda: self._on_open_calibration())
+            dpg.add_spacer(width=12)
+            with dpg.group():
+                dpg.add_text("")
+                dpg.add_button(tag=self.SETTINGS_BUTTON, label="Settings", width=100, height=34, callback=lambda: self._on_open_settings())
         dpg.bind_item_theme(self.STOP_BUTTON, self.STOP_THEME)
 
     def refresh_cameras(self) -> None:
@@ -105,7 +111,7 @@ class ControlPanelView:
 
     def resize(self, width: int) -> None:
         fixed_left_width = 660
-        fixed_right_width = 230
+        fixed_right_width = 580
         spacer_width = max(20, width - fixed_left_width - fixed_right_width)
         dpg.configure_item(self.RIGHT_ACTIONS_SPACER, width=spacer_width)
 

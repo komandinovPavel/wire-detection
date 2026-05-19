@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import dearpygui.dearpygui as dpg
 
+from ui_dpg.adapters.status_metrics import format_frame_badge, source_theme_key
+
 
 class StatusBarView:
     STATUS_BADGE = "status_badge"
@@ -16,6 +18,9 @@ class StatusBarView:
     OK_THEME = "status_ok_badge_theme"
     WARN_THEME = "status_warn_badge_theme"
     ERROR_THEME = "status_error_badge_theme"
+    IMAGE_THEME = "status_image_badge_theme"
+    SCREEN_THEME = "status_screen_badge_theme"
+    CAMERA_THEME = "status_camera_badge_theme"
 
     def build(self) -> None:
         self._build_themes()
@@ -26,7 +31,7 @@ class StatusBarView:
                 dpg.add_button(tag=self.MODE_BADGE, label="Mode: detect", width=118, height=24)
                 dpg.add_button(tag=self.YOLO_BADGE, label="YOLO: on", width=100, height=24)
                 dpg.add_button(tag=self.MEASURE_BADGE, label="Measure: off", width=120, height=24)
-                dpg.add_button(tag=self.FRAME_BADGE, label="Frame: -- ms", width=116, height=24)
+                dpg.add_button(tag=self.FRAME_BADGE, label="Frame: -- ms", width=188, height=24)
             dpg.add_text("", tag=self.MESSAGE_TEXT)
         for tag in [
             self.STATUS_BADGE,
@@ -37,10 +42,12 @@ class StatusBarView:
         ]:
             dpg.bind_item_theme(tag, self.BADGE_THEME)
         dpg.bind_item_theme(self.YOLO_BADGE, self.OK_THEME)
+        dpg.bind_item_theme(self.SOURCE_BADGE, self.ERROR_THEME)
 
     def update(self, snapshot, frame_result=None) -> None:
         status = snapshot.status.value
-        source = snapshot.source_type.value
+        source_type = snapshot.source_type
+        source = source_type.value
         mode = snapshot.mode.value
         yolo_enabled = snapshot.settings.yolo_enabled
         measure_enabled = snapshot.measurement_enabled
@@ -51,13 +58,12 @@ class StatusBarView:
         dpg.configure_item(self.YOLO_BADGE, label=f"YOLO: {'on' if yolo_enabled else 'off'}")
         dpg.configure_item(self.MEASURE_BADGE, label=f"Measure: {'on' if measure_enabled else 'off'}")
 
-        if frame_result is None:
-            dpg.configure_item(self.FRAME_BADGE, label="Frame: -- ms")
-        else:
-            dpg.configure_item(self.FRAME_BADGE, label=f"Frame: {frame_result.processing_ms:.1f} ms")
+        processing_ms = None if frame_result is None else frame_result.processing_ms
+        dpg.configure_item(self.FRAME_BADGE, label=format_frame_badge(source_type, processing_ms))
 
         dpg.set_value(self.MESSAGE_TEXT, snapshot.message or "")
         dpg.bind_item_theme(self.STATUS_BADGE, self._theme_for_status(status))
+        dpg.bind_item_theme(self.SOURCE_BADGE, self._theme_for_source(source_type))
         dpg.bind_item_theme(self.YOLO_BADGE, self.OK_THEME if yolo_enabled else self.WARN_THEME)
         dpg.bind_item_theme(self.MEASURE_BADGE, self.OK_THEME if measure_enabled else self.BADGE_THEME)
 
@@ -70,11 +76,22 @@ class StatusBarView:
             return self.WARN_THEME
         return self.BADGE_THEME
 
+    def _theme_for_source(self, source_type) -> str:
+        return {
+            "error": self.ERROR_THEME,
+            "image": self.IMAGE_THEME,
+            "screen": self.SCREEN_THEME,
+            "camera": self.CAMERA_THEME,
+        }[source_theme_key(source_type)]
+
     def _build_themes(self) -> None:
         self._build_button_theme(self.BADGE_THEME, (54, 61, 73, 255), (71, 80, 96, 255), (230, 235, 242, 255))
         self._build_button_theme(self.OK_THEME, (35, 105, 68, 255), (42, 128, 82, 255), (236, 255, 244, 255))
         self._build_button_theme(self.WARN_THEME, (128, 96, 36, 255), (150, 112, 42, 255), (255, 246, 220, 255))
         self._build_button_theme(self.ERROR_THEME, (135, 47, 47, 255), (160, 56, 56, 255), (255, 235, 235, 255))
+        self._build_button_theme(self.IMAGE_THEME, (36, 88, 140, 255), (45, 108, 170, 255), (235, 245, 255, 255))
+        self._build_button_theme(self.SCREEN_THEME, (32, 112, 118, 255), (39, 135, 142, 255), (230, 255, 255, 255))
+        self._build_button_theme(self.CAMERA_THEME, (35, 105, 68, 255), (42, 128, 82, 255), (236, 255, 244, 255))
 
     def _build_button_theme(
         self,

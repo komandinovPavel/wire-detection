@@ -12,13 +12,14 @@ The `ui_dpg` layer contains the Dear PyGui interface.
 ## Current Structure
 
 - `app.py`: creates the DPG context, viewport, main window, and update loop.
-- `views/control_panel.py`: grouped Source and Inspection controls on the left, plus right-aligned Actions for clear/settings/calibration and confidence.
+- `views/control_panel.py`: grouped Source and Inspection controls on the left, plus right-aligned Detection, Actions, and standalone Settings controls.
 - `views/settings_window.py`: modal DPG settings window for runtime UI settings, including YOLO enable/disable and defect deduplication.
 - `views/calibration_window.py`: separate DPG window for calibration image loading, preview, and click-to-calibrate.
 - `views/viewport.py`: responsive frame display and texture recreation.
 - `views/defects_panel.py`: defect table and class statistics.
-- `views/status_bar.py`: badge-style runtime status, active source, mode, YOLO state, measurement state, and latest frame processing time.
+- `views/status_bar.py`: badge-style runtime status, active source, mode, YOLO state, measurement state, and latest frame processing time/FPS.
 - `adapters/frame_texture.py`: converts `np.ndarray` frames into DPG texture data.
+- `adapters/status_metrics.py`: formats source-aware frame timing/FPS labels and source theme keys.
 
 ## Layout Notes
 
@@ -29,7 +30,10 @@ The `ui_dpg` layer contains the Dear PyGui interface.
 - `DefectsPanelView.resize()` keeps the defect list usable while the window size changes.
 - `ControlPanelView.update()` highlights the selected source from `RuntimeSnapshot.source_type`.
 - `SettingsWindowView` is hidden until the user presses `Settings`; runtime tuning controls should live there instead of crowding the toolbar.
-- `Clear` and `Settings` are right-aligned actions in the top panel; they are not part of the source selector.
+- `Clear` and `Calibrate` are right-aligned actions; `Settings` is isolated as a utility control outside the action group.
+- The footer includes an explicit bottom safe-area spacer so status badges do not sit flush against the Windows taskbar in fullscreen.
+- The source status badge uses source-specific colors; `none` is treated as an error/empty state while active sources remain labeled in text.
+- FPS is derived from `FrameResult.processing_ms` only for live sources (`camera` and `screen`), so still images keep a plain millisecond label.
 - Defect rows are appended from `FrameResult.new_detections`, while the viewport still displays the fully annotated frame.
 - When YOLO is disabled in settings, live/image sources still render frames but detection rows and counters do not update.
 - `Measure mode` is a toggle in the Inspection group. It is disabled until calibration exists, and source buttons continue to work while it is enabled.
