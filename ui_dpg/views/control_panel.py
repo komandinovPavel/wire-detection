@@ -19,6 +19,7 @@ class ControlPanelView:
     NORMAL_THEME = "normal_button_theme"
     ACTIVE_SOURCE_THEME = "active_source_theme"
     STOP_THEME = "stop_button_theme"
+    SETTINGS_THEME = "settings_button_theme"
     RIGHT_ACTIONS_SPACER = "right_actions_spacer"
 
     def __init__(
@@ -83,11 +84,13 @@ class ControlPanelView:
                 with dpg.group(horizontal=True):
                     dpg.add_button(tag=self.CLEAR_BUTTON, label="Clear", width=100, height=34, callback=lambda: self._on_clear_defects())
                     dpg.add_button(tag=self.CALIBRATE_BUTTON, label="Calibrate", width=112, height=34, callback=lambda: self._on_open_calibration())
-            dpg.add_spacer(width=12)
+            dpg.add_spacer(width=28)
             with dpg.group():
-                dpg.add_text("")
-                dpg.add_button(tag=self.SETTINGS_BUTTON, label="Settings", width=100, height=34, callback=lambda: self._on_open_settings())
+                dpg.add_button(tag=self.SETTINGS_BUTTON, label="Set", width=44, height=34, callback=lambda: self._on_open_settings())
+                with dpg.tooltip(self.SETTINGS_BUTTON):
+                    dpg.add_text("Settings")
         dpg.bind_item_theme(self.STOP_BUTTON, self.STOP_THEME)
+        dpg.bind_item_theme(self.SETTINGS_BUTTON, self.SETTINGS_THEME)
 
     def refresh_cameras(self) -> None:
         cameras = [str(index) for index in self._controller.list_cameras()]
@@ -111,7 +114,7 @@ class ControlPanelView:
 
     def resize(self, width: int) -> None:
         fixed_left_width = 660
-        fixed_right_width = 580
+        fixed_right_width = 540
         spacer_width = max(20, width - fixed_left_width - fixed_right_width)
         dpg.configure_item(self.RIGHT_ACTIONS_SPACER, width=spacer_width)
 
@@ -137,3 +140,10 @@ class ControlPanelView:
                 dpg.add_theme_color(dpg.mvThemeCol_Button, (150, 48, 48, 255))
                 dpg.add_theme_color(dpg.mvThemeCol_ButtonHovered, (180, 58, 58, 255))
                 dpg.add_theme_color(dpg.mvThemeCol_ButtonActive, (125, 39, 39, 255))
+
+        with dpg.theme(tag=self.SETTINGS_THEME):
+            with dpg.theme_component(dpg.mvButton):
+                dpg.add_theme_color(dpg.mvThemeCol_Button, (38, 42, 50, 255))
+                dpg.add_theme_color(dpg.mvThemeCol_ButtonHovered, (58, 64, 76, 255))
+                dpg.add_theme_color(dpg.mvThemeCol_ButtonActive, (72, 80, 94, 255))
+                dpg.add_theme_color(dpg.mvThemeCol_Text, (190, 198, 210, 255))

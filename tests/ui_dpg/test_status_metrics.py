@@ -18,6 +18,8 @@ def test_format_frame_badge_hides_fps_for_still_sources():
 
 def test_format_frame_badge_avoids_invalid_fps_values():
     assert format_frame_badge(SourceType.CAMERA, 0.0) == "Frame: 0.0 ms"
+    assert format_frame_badge(SourceType.CAMERA, float("inf")) == "Frame: -- ms"
+    assert format_frame_badge(SourceType.CAMERA, float("nan")) == "Frame: -- ms"
 
 
 def test_source_theme_key_marks_none_as_error_and_active_sources_distinctly():

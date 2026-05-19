@@ -30,7 +30,7 @@ The `ui_dpg` layer contains the Dear PyGui interface.
 - `DefectsPanelView.resize()` keeps the defect list usable while the window size changes.
 - `ControlPanelView.update()` highlights the selected source from `RuntimeSnapshot.source_type`.
 - `SettingsWindowView` is hidden until the user presses `Settings`; runtime tuning controls should live there instead of crowding the toolbar.
-- `Clear` and `Calibrate` are right-aligned actions; `Settings` is isolated as a utility control outside the action group.
+- `Clear` and `Calibrate` are right-aligned actions; `Settings` is isolated as a compact muted utility control outside the action group.
 - The footer includes an explicit bottom safe-area spacer so status badges do not sit flush against the Windows taskbar in fullscreen.
 - The source status badge uses source-specific colors; `none` is treated as an error/empty state while active sources remain labeled in text.
 - FPS is derived from `FrameResult.processing_ms` only for live sources (`camera` and `screen`), so still images keep a plain millisecond label.
