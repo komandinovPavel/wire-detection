@@ -86,7 +86,7 @@ class ControlPanelView:
                     dpg.add_button(tag=self.CALIBRATE_BUTTON, label="Calibrate", width=112, height=34, callback=lambda: self._on_open_calibration())
             dpg.add_spacer(width=28)
             with dpg.group():
-                dpg.add_button(tag=self.SETTINGS_BUTTON, label="Set", width=44, height=34, callback=lambda: self._on_open_settings())
+                dpg.add_button(tag=self.SETTINGS_BUTTON, label="Settings", width=88, height=34, callback=lambda: self._on_open_settings())
                 with dpg.tooltip(self.SETTINGS_BUTTON):
                     dpg.add_text("Settings")
         dpg.bind_item_theme(self.STOP_BUTTON, self.STOP_THEME)
@@ -114,7 +114,7 @@ class ControlPanelView:
 
     def resize(self, width: int) -> None:
         fixed_left_width = 660
-        fixed_right_width = 540
+        fixed_right_width = 584
         spacer_width = max(20, width - fixed_left_width - fixed_right_width)
         dpg.configure_item(self.RIGHT_ACTIONS_SPACER, width=spacer_width)
 
