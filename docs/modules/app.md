@@ -22,9 +22,12 @@ The `app` layer contains application use-case orchestration. It sits between UI 
 
 - `ProcessingRuntime.run_once()` is the testable one-frame path.
 - `ProcessingRuntime.start()` stops the old worker before starting a new one.
+- `ProcessingRuntime.clear_latest()` removes the last live-source frame so a stopped stream cannot repaint the UI after a still image is loaded.
 - If a previous worker does not stop inside its timeout, runtime raises `RuntimeError` instead of hiding a still-live thread.
 - `AppController.start_camera()` and `start_screen()` convert source startup failures into `RuntimeStatus.ERROR` snapshots instead of letting UI callbacks crash.
+- `AppController.stop_streaming_sources()` is the shared source-switch helper: it stops runtime/capture and clears stale live frames without hardcoding source-specific UI behavior.
 - `AppController.set_deduplication_enabled()` updates `ProcessingSettings` while preserving confidence and image size.
+- `AppController.set_yolo_enabled()` toggles inference while preserving the rest of the processing settings.
 - `AppController.load_calibration_image()` loads a clean calibration frame without running YOLO.
 - `AppController.start_measurement_mode()` freezes the latest clean frame so clicks measure the image the user sees.
 - `AppController.set_measurement_enabled()` owns the measurement toggle state; source switching does not disable it after calibration.

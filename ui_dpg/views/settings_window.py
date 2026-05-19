@@ -6,6 +6,7 @@ import dearpygui.dearpygui as dpg
 class SettingsWindowView:
     WINDOW_TAG = "settings_window"
     DEDUP_CHECKBOX = "deduplication_checkbox"
+    YOLO_CHECKBOX = "yolo_checkbox"
 
     def __init__(self, controller):
         self._controller = controller
@@ -16,12 +17,18 @@ class SettingsWindowView:
             label="Settings",
             tag=self.WINDOW_TAG,
             width=360,
-            height=140,
+            height=170,
             modal=True,
             show=False,
             no_resize=True,
         ):
             dpg.add_text("Defect detection")
+            dpg.add_checkbox(
+                tag=self.YOLO_CHECKBOX,
+                label="YOLO detection",
+                default_value=settings.yolo_enabled,
+                callback=lambda sender, value: self._controller.set_yolo_enabled(value),
+            )
             dpg.add_checkbox(
                 tag=self.DEDUP_CHECKBOX,
                 label="Deduplicate same defects",
@@ -37,4 +44,5 @@ class SettingsWindowView:
         dpg.configure_item(self.WINDOW_TAG, show=False)
 
     def update(self, snapshot) -> None:
+        dpg.set_value(self.YOLO_CHECKBOX, snapshot.settings.yolo_enabled)
         dpg.set_value(self.DEDUP_CHECKBOX, snapshot.settings.deduplicate_defects)

@@ -47,6 +47,15 @@ def test_run_once_processes_frame_and_stores_latest_result():
     assert runtime.poll_latest().message == "processed"
 
 
+def test_clear_latest_discards_stored_runtime_result():
+    runtime = ProcessingRuntime(OneFrameCapture(), RecordingProcessor(), AppState())
+    runtime.run_once()
+
+    runtime.clear_latest()
+
+    assert runtime.poll_latest() is None
+
+
 def test_run_once_returns_false_when_no_frame_available():
     capture = OneFrameCapture()
     capture.frames.clear()

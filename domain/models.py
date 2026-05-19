@@ -33,6 +33,7 @@ class ProcessingSettings:
     confidence: float = 0.3
     imgsz: int = 640
     deduplicate_defects: bool = True
+    yolo_enabled: bool = True
 
 
 @dataclass(frozen=True)

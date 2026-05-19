@@ -28,6 +28,7 @@ The `services` layer contains backend use cases and reusable application logic.
 - `FrameResult.detections` means all detections visible in the current processed frame.
 - `FrameResult.new_detections` means detections that should increment history/statistics.
 - `ProcessingSettings.deduplicate_defects` controls whether `FrameProcessor` applies `DefectEventFilter` or counts every current detection as a new event.
+- `ProcessingSettings.yolo_enabled` controls whether `FrameProcessor` calls the detector at all. When disabled, the source frame passes through unchanged and no new detections are counted.
 - The UI can still render all current detections while counters avoid per-frame spam from one stable defect.
 
 ## Calibration Semantics

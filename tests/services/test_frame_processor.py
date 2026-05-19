@@ -33,6 +33,18 @@ class StableDetectionService:
         )
 
 
+class RecordingDetectionService:
+    def __init__(self):
+        self.calls = 0
+
+    def detect(self, frame, settings):
+        self.calls += 1
+        return DetectionResult(
+            annotated_frame=frame,
+            detections=[Detection("scratch", 0.9, (0, 0, 10, 10), timestamp=10.0)],
+        )
+
+
 def test_process_success_returns_frame_result_and_updates_history():
     frame = np.zeros((3, 3, 3), dtype=np.uint8)
     history = DefectHistory()
@@ -78,6 +90,23 @@ def test_process_counts_every_detection_when_deduplication_is_disabled():
     assert len(first.new_detections) == 1
     assert len(second.new_detections) == 1
     assert second.stats.total == 2
+
+
+def test_process_skips_detection_and_returns_source_frame_when_yolo_is_disabled():
+    frame = np.zeros((3, 3, 3), dtype=np.uint8)
+    history = DefectHistory()
+    detection_service = RecordingDetectionService()
+    processor = FrameProcessor(detection_service, history)
+
+    result = processor.process(frame, ProcessingSettings(yolo_enabled=False))
+
+    assert detection_service.calls == 0
+    assert result.source_frame is frame
+    assert result.display_frame is frame
+    assert result.detections == []
+    assert result.new_detections == []
+    assert result.stats.total == 0
+    assert result.message == "YOLO disabled"
 
 
 def test_process_failure_returns_error_result_without_history_increment():

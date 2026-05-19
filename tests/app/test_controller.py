@@ -57,6 +57,9 @@ class StubRuntime:
         self.stopped = True
         self.is_running = False
 
+    def clear_latest(self):
+        self.latest = None
+
     def poll_latest(self):
         return self.latest
 
@@ -209,6 +212,21 @@ def test_set_deduplication_enabled_updates_state_and_preserves_other_settings():
     assert controller.get_status().settings.imgsz == 320
 
 
+def test_set_yolo_enabled_updates_state_and_preserves_other_settings():
+    state = AppState(settings=ProcessingSettings(confidence=0.42, imgsz=320, deduplicate_defects=False))
+    capture = StubCaptureService()
+    processor = StubProcessor()
+    runtime = StubRuntime()
+    controller = AppController(capture, processor, runtime, state)
+
+    controller.set_yolo_enabled(False)
+
+    assert controller.get_status().settings.yolo_enabled is False
+    assert controller.get_status().settings.deduplicate_defects is False
+    assert controller.get_status().settings.confidence == 0.42
+    assert controller.get_status().settings.imgsz == 320
+
+
 def test_load_image_processes_single_frame_and_updates_snapshot():
     controller, capture, _ = make_controller()
 
@@ -216,6 +234,22 @@ def test_load_image_processes_single_frame_and_updates_snapshot():
 
     assert capture.source_type is SourceType.IMAGE
     assert result.message == "conf=0.3"
+    assert controller.poll_latest_frame() is result
+    assert controller.get_status().source_type is SourceType.IMAGE
+
+
+def test_load_image_stops_streaming_sources_and_discards_stale_runtime_frame():
+    controller, capture, runtime = make_controller()
+    stale = FrameResult(source_frame=object(), display_frame=object(), message="stale")
+    runtime.latest = stale
+    controller.start_screen()
+    runtime.latest = stale
+
+    result = controller.load_image("image.jpg")
+
+    assert runtime.stopped is True
+    assert capture.stopped is True
+    assert runtime.latest is None
     assert controller.poll_latest_frame() is result
     assert controller.get_status().source_type is SourceType.IMAGE
 
@@ -284,15 +318,18 @@ def test_calibrate_at_uses_loaded_calibration_frame_and_returns_overlay():
 
 
 def test_start_measurement_mode_freezes_latest_source_frame():
-    controller, _, _ = make_controller()
+    controller, capture, runtime = make_controller()
     controller.load_calibration_image("calibration.jpg")
     controller.calibrate_at(42)
     frame = object()
+    runtime.latest = FrameResult(source_frame=object(), display_frame=object())
     controller._latest_frame = FrameResult(source_frame=frame, display_frame=object())
 
     frozen = controller.start_measurement_mode()
 
     assert frozen is frame
+    assert runtime.latest is None
+    assert capture.stopped is True
     assert controller.get_status().measurement_enabled is True
     assert controller.get_status().mode is AppMode.DETECT
 

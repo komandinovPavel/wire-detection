@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Any
 
 from app.runtime import ProcessingRuntime
@@ -32,7 +33,7 @@ class AppController:
         self._measurement_frame: Any | None = None
 
     def load_image(self, path: str) -> FrameResult:
-        self.stop()
+        self.stop_streaming_sources()
         try:
             frame = self._capture_service.load_image(path)
             self._state.source_type = self._capture_service.source_type
@@ -82,26 +83,26 @@ class AppController:
             self._state.last_error = str(exc)
 
     def stop(self) -> None:
-        self._runtime.stop()
-        self._capture_service.stop()
+        self.stop_streaming_sources()
         self._state.source_type = self._capture_service.source_type
         self._state.status = RuntimeStatus.STOPPED
         self._state.message = "Stopped"
 
+    def stop_streaming_sources(self) -> None:
+        self._runtime.stop()
+        self._runtime.clear_latest()
+        self._capture_service.stop()
+        self._state.source_type = self._capture_service.source_type
+
     def set_confidence(self, value: float) -> None:
         clamped = max(0.0, min(1.0, float(value)))
-        self._state.settings = ProcessingSettings(
-            confidence=clamped,
-            imgsz=self._state.settings.imgsz,
-            deduplicate_defects=self._state.settings.deduplicate_defects,
-        )
+        self._state.settings = replace(self._state.settings, confidence=clamped)
 
     def set_deduplication_enabled(self, enabled: bool) -> None:
-        self._state.settings = ProcessingSettings(
-            confidence=self._state.settings.confidence,
-            imgsz=self._state.settings.imgsz,
-            deduplicate_defects=bool(enabled),
-        )
+        self._state.settings = replace(self._state.settings, deduplicate_defects=bool(enabled))
+
+    def set_yolo_enabled(self, enabled: bool) -> None:
+        self._state.settings = replace(self._state.settings, yolo_enabled=bool(enabled))
 
     def list_cameras(self, max_index: int = 5) -> list[int]:
         return self._capture_service.available_cameras(max_index)
@@ -182,9 +183,7 @@ class AppController:
             self._state.message = "No frame available for measurement"
             self._state.last_error = "No frame available for measurement"
             raise RuntimeError("No frame available for measurement")
-        self._runtime.stop()
-        self._capture_service.stop()
-        self._state.source_type = self._capture_service.source_type
+        self.stop_streaming_sources()
         self._state.measurement_enabled = True
         self._state.mode = AppMode.DETECT
         self._state.status = RuntimeStatus.READY

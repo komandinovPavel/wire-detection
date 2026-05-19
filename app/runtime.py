@@ -65,6 +65,10 @@ class ProcessingRuntime:
         with self._lock:
             return self._latest
 
+    def clear_latest(self) -> None:
+        with self._lock:
+            self._latest = None
+
     def _loop(self) -> None:
         while not self._stop_event.is_set():
             self.run_once()

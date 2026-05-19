@@ -23,7 +23,7 @@ class DearPyGuiApp:
     DEFECTS_PANEL_WIDTH = 340
     MIN_DEFECTS_PANEL_WIDTH = 280
     MIN_VIEWPORT_WIDTH = 360
-    CONTROL_STATUS_RESERVED_HEIGHT = 120
+    CONTROL_STATUS_RESERVED_HEIGHT = 150
     PANEL_PADDING = 24
 
     def __init__(self, config: Config | None = None):
@@ -146,6 +146,7 @@ class DearPyGuiApp:
         client_width = max(self.config.WINDOW_WIDTH, dpg.get_viewport_client_width())
         client_height = max(self.config.WINDOW_HEIGHT, dpg.get_viewport_client_height())
         content_height = max(260, client_height - self.CONTROL_STATUS_RESERVED_HEIGHT)
+        self.controls.resize(client_width - 16)
 
         defects_width = self.DEFECTS_PANEL_WIDTH
         if client_width < 900:

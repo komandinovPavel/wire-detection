@@ -31,6 +31,19 @@ class FrameProcessor:
 
     def process(self, frame: Any, settings: ProcessingSettings) -> FrameResult:
         started = perf_counter()
+        if not settings.yolo_enabled:
+            elapsed_ms = (perf_counter() - started) * 1000.0
+            return FrameResult(
+                source_frame=frame,
+                display_frame=frame,
+                detections=[],
+                new_detections=[],
+                stats=self._history.stats(),
+                status=RuntimeStatus.READY,
+                message="YOLO disabled",
+                processing_ms=elapsed_ms,
+            )
+
         detection_result = self._detection_service.detect(frame, settings)
         elapsed_ms = (perf_counter() - started) * 1000.0
 

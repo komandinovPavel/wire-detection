@@ -4,6 +4,7 @@ import dearpygui.dearpygui as dpg
 
 
 class ControlPanelView:
+    ROOT_TAG = "control_panel_group"
     IMAGE_BUTTON = "source_image_button"
     SCREEN_BUTTON = "source_screen_button"
     CAMERA_BUTTON = "source_camera_button"
@@ -18,6 +19,7 @@ class ControlPanelView:
     NORMAL_THEME = "normal_button_theme"
     ACTIVE_SOURCE_THEME = "active_source_theme"
     STOP_THEME = "stop_button_theme"
+    RIGHT_ACTIONS_SPACER = "right_actions_spacer"
 
     def __init__(
         self,
@@ -43,30 +45,32 @@ class ControlPanelView:
 
     def build(self) -> None:
         self._build_themes()
-        with dpg.group(horizontal=True):
-            with dpg.group():
-                dpg.add_text("Source")
-                with dpg.group(horizontal=True):
-                    dpg.add_button(tag=self.IMAGE_BUTTON, label="Image", width=96, height=34, callback=lambda: self._on_load_image())
-                    dpg.add_button(tag=self.SCREEN_BUTTON, label="Screen", width=96, height=34, callback=lambda: self._on_start_screen())
-                    dpg.add_button(tag=self.CAMERA_BUTTON, label="Camera", width=96, height=34, callback=lambda: self._start_selected_camera())
-                    dpg.add_button(tag=self.STOP_BUTTON, label="Stop capture", width=112, height=34, callback=lambda: self._on_stop())
-                with dpg.group(horizontal=True):
-                    dpg.add_text("Camera list")
-                    dpg.add_combo(tag=self.CAMERA_COMBO, items=["0"], default_value="0", width=90)
-                    dpg.add_button(tag=self.REFRESH_BUTTON, label="R", width=28, height=24, callback=lambda: self.refresh_cameras())
+        with dpg.group(tag=self.ROOT_TAG, horizontal=True):
+            with dpg.group(horizontal=True):
+                with dpg.group():
+                    dpg.add_text("Source")
+                    with dpg.group(horizontal=True):
+                        dpg.add_button(tag=self.IMAGE_BUTTON, label="Image", width=96, height=34, callback=lambda: self._on_load_image())
+                        dpg.add_button(tag=self.SCREEN_BUTTON, label="Screen", width=96, height=34, callback=lambda: self._on_start_screen())
+                        dpg.add_button(tag=self.CAMERA_BUTTON, label="Camera", width=96, height=34, callback=lambda: self._start_selected_camera())
+                        dpg.add_button(tag=self.STOP_BUTTON, label="Stop capture", width=112, height=34, callback=lambda: self._on_stop())
+                    with dpg.group(horizontal=True):
+                        dpg.add_text("Camera list")
+                        dpg.add_combo(tag=self.CAMERA_COMBO, items=["0"], default_value="0", width=90)
+                        dpg.add_button(tag=self.REFRESH_BUTTON, label="R", width=28, height=24, callback=lambda: self.refresh_cameras())
+                dpg.add_spacer(width=12)
+                with dpg.group():
+                    dpg.add_text("Inspection")
+                    dpg.add_checkbox(tag=self.MEASURE_BUTTON, label="Measure mode", callback=lambda sender, value: self._on_measurement_toggle(value))
+                    dpg.add_text("Calibrate first", tag=self.MEASURE_HINT)
             dpg.add_spacer(width=12)
+            dpg.add_spacer(tag=self.RIGHT_ACTIONS_SPACER, width=20)
             with dpg.group():
-                dpg.add_text("Inspection")
-                dpg.add_checkbox(tag=self.MEASURE_BUTTON, label="Measure mode", callback=lambda sender, value: self._on_measurement_toggle(value))
-                dpg.add_text("Calibrate first", tag=self.MEASURE_HINT)
-            dpg.add_spacer(width=12)
-            with dpg.group():
-                dpg.add_text("Tools")
+                dpg.add_text("Actions")
                 with dpg.group(horizontal=True):
-                    dpg.add_button(tag=self.CALIBRATE_BUTTON, label="Calibrate", width=112, height=34, callback=lambda: self._on_open_calibration())
                     dpg.add_button(tag=self.CLEAR_BUTTON, label="Clear", width=100, height=34, callback=lambda: self._on_clear_defects())
                     dpg.add_button(tag=self.SETTINGS_BUTTON, label="Settings", width=112, height=34, callback=lambda: self._on_open_settings())
+                dpg.add_button(tag=self.CALIBRATE_BUTTON, label="Calibrate", width=216, height=34, callback=lambda: self._on_open_calibration())
                 with dpg.group(horizontal=True):
                     dpg.add_text("Confidence")
                     dpg.add_slider_float(
@@ -74,7 +78,7 @@ class ControlPanelView:
                         default_value=0.3,
                         min_value=0.1,
                         max_value=0.9,
-                        width=180,
+                        width=160,
                         callback=lambda sender, value: self._controller.set_confidence(value),
                     )
         dpg.bind_item_theme(self.STOP_BUTTON, self.STOP_THEME)
@@ -98,6 +102,12 @@ class ControlPanelView:
         can_measure = self._controller.is_calibrated()
         dpg.configure_item(self.MEASURE_BUTTON, enabled=can_measure)
         dpg.configure_item(self.MEASURE_HINT, show=not can_measure)
+
+    def resize(self, width: int) -> None:
+        fixed_left_width = 660
+        fixed_right_width = 230
+        spacer_width = max(20, width - fixed_left_width - fixed_right_width)
+        dpg.configure_item(self.RIGHT_ACTIONS_SPACER, width=spacer_width)
 
     def _start_selected_camera(self) -> None:
         value = dpg.get_value(self.CAMERA_COMBO) or "0"
