@@ -9,7 +9,7 @@ from ultralytics import YOLO
 
 if __name__ == "__main__":
     # Загружаем pre-trained модель сегментации
-    model = YOLO("yolov8s-seg.pt")  # можно заменить на yolov8n-seg если GPU слабый
+    model = YOLO("weights/base/yolov8s-seg.pt")  # можно заменить на weights/base/yolov8n-seg.pt если GPU слабый
 
     # Обучение
     model.train(

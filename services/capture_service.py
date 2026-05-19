@@ -3,12 +3,11 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-import cv2
-
 from capture.camera import CameraCapture
 from capture.image import ImageCapture
 from capture.screen import ScreenCapture
 from domain import SourceType
+from utils.camera_utils import is_camera_available
 
 
 class CaptureService:
@@ -72,8 +71,4 @@ class CaptureService:
         return source
 
     def _probe_camera(self, index: int) -> bool:
-        capture = cv2.VideoCapture(index)
-        try:
-            return bool(capture.isOpened())
-        finally:
-            capture.release()
+        return is_camera_available(index)

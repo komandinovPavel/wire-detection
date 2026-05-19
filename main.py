@@ -1,11 +1,9 @@
-import tkinter as tk
-from ui.main_window import MainWindow
+from ui_dpg.app import run_app
 
-def main():
-    root = tk.Tk()
-    app = MainWindow(root)
-    root.protocol("WM_DELETE_WINDOW", app.on_closing)
-    root.mainloop()
+
+def main() -> None:
+    run_app()
+
 
 if __name__ == "__main__":
     main()

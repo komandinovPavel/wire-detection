@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import tkinter as tk
-from tkinter import filedialog
-
 import dearpygui.dearpygui as dpg
 
 from app.factory import build_controller
@@ -21,6 +18,8 @@ class DearPyGuiApp:
     VIEWPORT_PANEL_TAG = "viewport_panel"
     DEFECTS_PANEL_TAG = "defects_panel"
     BOTTOM_SAFE_PADDING_TAG = "bottom_safe_padding"
+    IMAGE_FILE_DIALOG_TAG = "image_file_dialog"
+    CALIBRATION_FILE_DIALOG_TAG = "calibration_file_dialog"
     DEFECTS_PANEL_WIDTH = 340
     MIN_DEFECTS_PANEL_WIDTH = 280
     MIN_VIEWPORT_WIDTH = 360
@@ -77,17 +76,10 @@ class DearPyGuiApp:
             dpg.add_spacer(tag=self.BOTTOM_SAFE_PADDING_TAG, height=self.BOTTOM_SAFE_PADDING)
         self.settings.build()
         self.calibration.build()
+        self._build_file_dialogs()
 
     def _load_image(self) -> None:
-        root = tk.Tk()
-        root.withdraw()
-        path = filedialog.askopenfilename(
-            title="Select Image",
-            filetypes=[("Images", "*.jpg *.jpeg *.png *.bmp"), ("All", "*.*")],
-        )
-        root.destroy()
-        if path:
-            self.controller.load_image(path)
+        dpg.configure_item(self.IMAGE_FILE_DIALOG_TAG, show=True)
 
     def _clear_defects(self) -> None:
         self.controller.clear_output()
@@ -96,13 +88,15 @@ class DearPyGuiApp:
         self._last_rendered_result = None
 
     def _load_calibration_image(self) -> None:
-        root = tk.Tk()
-        root.withdraw()
-        path = filedialog.askopenfilename(
-            title="Select Calibration Image",
-            filetypes=[("Images", "*.jpg *.jpeg *.png *.bmp"), ("All", "*.*")],
-        )
-        root.destroy()
+        dpg.configure_item(self.CALIBRATION_FILE_DIALOG_TAG, show=True)
+
+    def _handle_image_selected(self, sender, app_data) -> None:
+        path = self._selected_file_path(app_data)
+        if path:
+            self.controller.load_image(path)
+
+    def _handle_calibration_image_selected(self, sender, app_data) -> None:
+        path = self._selected_file_path(app_data)
         if path:
             frame = self.controller.load_calibration_image(path)
             self.calibration.update_frame(frame)
@@ -167,6 +161,39 @@ class DearPyGuiApp:
             viewport_width - self.PANEL_PADDING,
             content_height - self.PANEL_PADDING,
         )
+
+    def _build_file_dialogs(self) -> None:
+        self._add_image_file_dialog(
+            self.IMAGE_FILE_DIALOG_TAG,
+            "Select Image",
+            self._handle_image_selected,
+        )
+        self._add_image_file_dialog(
+            self.CALIBRATION_FILE_DIALOG_TAG,
+            "Select Calibration Image",
+            self._handle_calibration_image_selected,
+        )
+
+    def _add_image_file_dialog(self, tag: str, label: str, callback) -> None:
+        with dpg.file_dialog(
+            tag=tag,
+            label=label,
+            directory_selector=False,
+            show=False,
+            callback=callback,
+            width=700,
+            height=420,
+        ):
+            dpg.add_file_extension(".*")
+            dpg.add_file_extension(".jpg", color=(120, 190, 255, 255))
+            dpg.add_file_extension(".jpeg", color=(120, 190, 255, 255))
+            dpg.add_file_extension(".png", color=(120, 190, 255, 255))
+            dpg.add_file_extension(".bmp", color=(120, 190, 255, 255))
+
+    def _selected_file_path(self, app_data) -> str:
+        if not isinstance(app_data, dict):
+            return ""
+        return app_data.get("file_path_name") or ""
 
 
 def run_app() -> None:

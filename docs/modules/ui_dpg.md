@@ -11,7 +11,7 @@ The `ui_dpg` layer contains the Dear PyGui interface.
 
 ## Current Structure
 
-- `app.py`: creates the DPG context, viewport, main window, and update loop.
+- `app.py`: creates the DPG context, viewport, main window, native DPG file dialogs, and update loop.
 - `views/control_panel.py`: grouped Source and Inspection controls on the left, plus right-aligned Detection, Actions, and standalone Settings controls.
 - `views/settings_window.py`: modal DPG settings window for runtime UI settings, including YOLO enable/disable and defect deduplication.
 - `views/calibration_window.py`: separate DPG window for calibration image loading, preview, and click-to-calibrate.
@@ -31,6 +31,7 @@ The `ui_dpg` layer contains the Dear PyGui interface.
 - `DefectsPanelView.resize()` keeps the defect list usable while the window size changes.
 - `ControlPanelView.update()` highlights the selected source from `RuntimeSnapshot.source_type`.
 - `SettingsWindowView` is hidden until the user presses `Settings`; runtime tuning controls should live there instead of crowding the toolbar.
+- Image and calibration file selection use Dear PyGui file dialogs; the legacy Tkinter UI has been removed.
 - `Clear` and `Calibrate` are right-aligned actions; `Settings` is isolated as a compact muted utility control outside the action group.
 - The footer includes an explicit bottom safe-area spacer so status badges do not sit flush against the Windows taskbar in fullscreen.
 - The source status badge uses source-specific colors; `none` is treated as an error/empty state while active sources remain labeled in text.
@@ -50,4 +51,3 @@ The DPG UI can depend on `app` and `domain`. It should not depend directly on `c
 - Frame source lifecycle implementation.
 - Defect counting logic.
 - Calibration math.
-

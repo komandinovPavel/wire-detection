@@ -9,9 +9,8 @@ YOLOv8-based wire defect detection system with GUI for real-time inspection.
 ```
 wire_defect_detector/
 │
-├── main.py                      # 🚀 GUI приложение (запуск детектора)
+├── main.py                      # 🚀 Dear PyGui приложение (запуск детектора)
 ├── train.py                     # 🎓 Обучение модели YOLO
-├── check.py                     # ✅ Проверка работы модели
 ├── requirements.txt
 ├── README.md
 │
@@ -36,6 +35,11 @@ wire_defect_detector/
 │               └── weights/
 │                   └── best.pt  # Лучшая модель после обучения
 │
+├── weights/                     # 🧩 Скачанные базовые веса
+│   └── base/
+│       ├── yolov8n-seg.pt
+│       └── yolov8s-seg.pt
+│
 ├── core/                        # 🧠 Логика приложения
 │   ├── config.py
 │   ├── model.py
@@ -47,14 +51,15 @@ wire_defect_detector/
 │   ├── screen.py
 │   └── image.py
 │
-├── ui/                          # 🎨 Графический интерфейс
-│   ├── main_window.py
-│   ├── control_panel.py
-│   ├── display_canvas.py
-│   └── defect_panel.py
+├── ui_dpg/                      # 🎨 Dear PyGui интерфейс
+│   ├── app.py
+│   ├── views/
+│   └── adapters/
 │
 └── utils/                       # 🛠️ Вспомогательные функции
-    └── camera_utils.py
+    ├── camera_utils.py
+    ├── check_environment.py
+    └── validate_yolo_dataset.py
 ```
 
 ---
@@ -118,7 +123,7 @@ python train.py
 ```
 
 **Что происходит:**
-- Загружается pre-trained модель `yolov8s-seg.pt`
+- Загружается pre-trained модель `weights/base/yolov8s-seg.pt`
 - Обучение на 120 эпох
 - Результаты сохраняются в `wire_defects_optimized/v1/`
 - Лучшая модель: `wire_defects_optimized/v1/weights/best.pt`
@@ -135,16 +140,14 @@ patience=20         # Early stopping
 
 ---
 
-### 4️⃣ Проверка модели
+### 4️⃣ Проверка окружения и датасета
 
 ```bash
-python check.py
+python -m utils.check_environment
+python -m utils.validate_yolo_dataset
 ```
 
-Скрипт должен:
-- Загрузить обученную модель
-- Запустить inference на тестовых изображениях
-- Показать результаты
+Утилиты показывают состояние PyTorch/CUDA и проверяют, что у train-изображений есть соответствующие YOLO labels.
 
 ---
 
@@ -171,11 +174,12 @@ python main.py
 ```
 
 **Возможности GUI:**
-- 📁 **Load Image** - загрузить фото для анализа
-- 🖥️ **Screen** - захват экрана в реальном времени
-- 📷 **Camera** - захват с веб-камеры
-- 📏 **Calibrate** - калибровка для измерения размеров
-- 🔍 **Defect Panel** - список найденных дефектов
+- **Image** - загрузить фото для анализа
+- **Screen** - захват экрана в реальном времени
+- **Camera** - захват с веб-камеры
+- **Calibrate** - калибровка для измерения размеров
+- **Measure mode** - измерение диаметра после калибровки
+- **Defects** - список найденных дефектов и статистика
 
 ---
 
@@ -192,7 +196,8 @@ python main.py
    └─> Результат: wire_defects_optimized/v1/weights/best.pt
 
 3. Проверка
-   └─> python check.py
+   └─> python -m utils.check_environment
+   └─> python -m utils.validate_yolo_dataset
 
 4. Обновление config.py
    └─> MODEL_PATH = "путь/к/best.pt"
@@ -207,11 +212,10 @@ python main.py
 
 ### Как откалибровать систему:
 
-1. **Нажми** "📏 Calibrate"
+1. **Нажми** "Calibrate"
 2. **Выбери** изображение с проволокой
-3. **Кликни** по двум точкам известного расстояния  
-   (например, начало и конец проволоки длиной 50мм)
-4. **Введи** реальное расстояние в мм
+3. **Кликни** по проволоке в окне калибровки
+4. Система измерит диаметр в пикселях и рассчитает масштаб от `Config.NOMINAL_DIAMETER_MM`
 5. **Получи:**
    - Калибровку: `12.456 px/mm`
    - Диаметр проволоки: `3.214 mm`
@@ -226,8 +230,8 @@ python main.py
 
 В `train.py` можно использовать другие модели:
 ```python
-model = YOLO("yolov8n-seg.pt")  # Nano - быстрая, но менее точная
-model = YOLO("yolov8s-seg.pt")  # Small - баланс (по умолчанию)
+model = YOLO("weights/base/yolov8n-seg.pt")  # Nano - быстрая, но менее точная
+model = YOLO("weights/base/yolov8s-seg.pt")  # Small - баланс (по умолчанию)
 model = YOLO("yolov8m-seg.pt")  # Medium - точнее, но медленнее
 model = YOLO("yolov8l-seg.pt")  # Large - максимальная точность
 ```
@@ -329,12 +333,12 @@ python main.py
 
 Удачной детекции дефектов! 🔍✨
 
-## Dear PyGui MVP
+## Dear PyGui App
 
-The new DPG entry point is:
+DPG entry point:
 
 ```powershell
-python main_dpg.py
+python main.py
 ```
 
 Current DPG scope:
@@ -346,12 +350,8 @@ Current DPG scope:
 - confidence slider;
 - responsive frame viewport;
 - defect history and class statistics;
-- status display.
+- status display;
+- calibration;
+- measurement mode.
 
-The legacy Tkinter entry point is still:
-
-```powershell
-python main.py
-```
-
-Calibration and measurement are still handled by the existing Tkinter workflow until the next migration phase.
+The legacy Tkinter UI has been removed.
